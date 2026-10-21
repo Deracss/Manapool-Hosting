@@ -51,7 +51,7 @@ app.whenReady().then(async () => {
     await click('Start game');
     await waitFor('Your opening hand');
     await shot('05-mulligan');
-    await click('Keep');
+    for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
     console.log('my main?', await waitFor('End Main phase'));
     await shot('06-my-main');
     // Click the first glowing hand card and look at its options.
@@ -72,7 +72,7 @@ app.whenReady().then(async () => {
     let shotsTaken = { block: false, boost: false, priority: false };
     const t0 = Date.now();
     while (Date.now() - t0 < 120000) {
-      if (await has('Your opening hand')) await click('Keep');
+      if (await has('Your opening hand')) for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
       if (await has('attacks you') && !shotsTaken.block) {
         await shot('09-being-attacked');
         shotsTaken.block = true;

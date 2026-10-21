@@ -79,7 +79,7 @@ app.whenReady().then(async () => {
     await sleep(200);
     await click('Start game');
     await sleep(500);
-    await click('Keep');
+    for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
     for (let i = 0; i < 400 && !(await js(`document.body.innerText.includes('End Main phase')`)); i++) await sleep(100);
     await hoverSelector('.hand .card-box');
     await tab(true);

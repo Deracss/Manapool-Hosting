@@ -20,7 +20,7 @@ app.whenReady().then(async () => {
     await sleep(200);
     await click('Start game');
     await sleep(400);
-    await click('Keep');
+    for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
     for (let i = 0; i < 300 && !(await has('End Main phase')); i++) await sleep(100);
     const put = (n, p, t = false) => js(`window.__manapool.put(${JSON.stringify(n)}, ${p}, ${t})`);
     await put('Vampire Duke', 0); await put('Steelshaper Vanguard', 0); await put('Fangs', 0); await put('Clockwork Servitor', 0, true);

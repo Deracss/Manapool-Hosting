@@ -43,7 +43,7 @@ app.whenReady().then(async () => {
     await sleep(200);
     await click('Start game');
     await sleep(400);
-    await click('Keep');
+    for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
     for (let i = 0; i < 300 && !(await has('End Main phase')); i++) await sleep(100);
 
     // Alt over a hand card opens the popup; Tab no longer does.

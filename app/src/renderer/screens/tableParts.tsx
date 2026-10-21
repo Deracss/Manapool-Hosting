@@ -472,7 +472,7 @@ export interface Flight {
 /** An effect drawn in place: a negated stack card, a breaking Orb, a counter pip. */
 export interface Burst {
   id: number;
-  kind: 'negate' | 'orb' | 'pip' | 'sparkle';
+  kind: 'negate' | 'orb' | 'pip' | 'sparkle' | 'clash';
   rect: Rect;
   show?: CardShow;
   text?: string;
@@ -504,7 +504,7 @@ export function useTableFx(s: GameState, enabled: boolean) {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [bursts, setBursts] = useState<Burst[]>([]);
-  const [marks, setMarks] = useState<{ landing: Map<Iid, number>; token: Set<Iid>; reform: Set<Iid>; hit: Set<Iid>; counter: Set<Iid>; hurt: Set<PlayerId>; heal: Set<PlayerId>; bump: Set<string> }>({ landing: new Map(), token: new Set(), reform: new Set(), hit: new Set(), counter: new Set(), hurt: new Set(), heal: new Set(), bump: new Set() });
+  const [marks, setMarks] = useState<{ landing: Map<Iid, number>; token: Set<Iid>; reform: Set<Iid>; hit: Set<Iid>; counter: Set<Iid>; hurt: Set<PlayerId>; heal: Set<PlayerId>; bump: Set<string>; flare: Set<PlayerId>; shake: boolean }>({ landing: new Map(), token: new Set(), reform: new Set(), hit: new Set(), counter: new Set(), hurt: new Set(), heal: new Set(), bump: new Set(), flare: new Set(), shake: false });
   const prevRects = useRef(new Map<string, Rect>());
   const lastHit = useRef(new Map<PlayerId, { by: string; byPlayer: PlayerId }>());
   const outs = useRef<OutInfo[]>([]);
@@ -675,6 +675,9 @@ export function useTableFx(s: GameState, enabled: boolean) {
       const hurt = new Set<PlayerId>();
       const heal = new Set<PlayerId>();
       const sounds: { k: Parameters<typeof playSound>[0]; d: number }[] = [];
+      const flare = new Set<PlayerId>();
+      let shake = false;
+      const newLog = s.log.slice(before.log.length);
       const snd = (k: Parameters<typeof playSound>[0], d = 0) => sounds.push({ k, d });
       const mid = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
       let stagger = 0;
@@ -818,10 +821,64 @@ export function useTableFx(s: GameState, enabled: boolean) {
         }
       }
       if (taps) snd('tap');
+
+      // 1 · Playing a card: a sound for its type.
+      const PLAY_SOUND: Record<string, Parameters<typeof playSound>[0]> = { Creature: 'playCreature', Spell: 'playSpell', Incantation: 'playIncantation', Artifact: 'playArtifact', Anthem: 'playAnthem' };
+      for (const it of fresh) {
+        const k = PLAY_SOUND[getDef(s.cards[(it as { iid: Iid }).iid].cardId).type];
+        if (k) snd(k);
+      }
+
+      // 3 · Mana flows from the Orbs you spent into what you're playing.
+      const spentOrbs = before.players[ME].orbs.filter((o) => o.filled && s.players[ME].orbs.some((n) => n.iid === o.iid && !n.filled)).map((o) => o.iid);
+      const newMine = s.stack.filter((it) => it.controller === ME && !before.stack.some((b) => b.id === it.id));
+      if (spentOrbs.length && newMine.length) {
+        const it = newMine[newMine.length - 1];
+        const to = it.kind === 'card' ? { x: window.innerWidth / 2 - 159, y: window.innerHeight / 2 - 1, w: 2, h: 2 } : R.get(`stack:${it.id}`);
+        spentOrbs.forEach((o, i) => {
+          for (let k = 0; k < 3; k++) fly('mote', P.get(`orb:${o}`) ?? R.get(`orb:${o}`), to, { size: { w: 9, h: 9 }, s0: 1, s1: 0.5, o1: 0, ms: 520, delay: i * 70 + k * 60, scatter: 40, color: '#7fd6e8' });
+        });
+        snd('manaFlow');
+      }
+
+      // 2 · Clash impact: attacker and defender knock together.
+      if (before.combat && (!s.combat || s.combat.attacker !== before.combat.attacker) && newLog.some((l) => l.includes('Combat:'))) {
+        const c = before.combat;
+        const def = c.blocker ?? c.targetCreature;
+        const at = def ? P.get(def) : undefined;
+        if (def && at) {
+          const big = !s.perms[def];
+          bs.push({ id: nextId.current++, kind: 'clash', rect: at, delay: 0 });
+          if (big) shake = true;
+          snd(big ? 'clashBig' : 'clash');
+        }
+      }
+
+      // 4 · The Field reacts to big moments for its tribe.
+      const tribeOf = (g: GameState, iid: Iid) => {
+        const c = g.cards[iid];
+        return c ? (c.override?.tribe ?? getDef(c.cardId).tribe ?? '') : '';
+      };
+      const typeOf = (g: GameState, iid: Iid) => (g.cards[iid] ? getDef(g.cards[iid].cardId).type : '');
+      for (const p of s.players) {
+        const f = p.fieldCard;
+        if (!f || p.eliminated) continue;
+        const mineNew = Object.keys(s.perms).filter((i) => !before.perms[i] && s.perms[i].controller === p.id);
+        let hit = false;
+        if (f === 'demon-field') hit = mineNew.some((i) => tribeOf(s, i) === 'Demon');
+        if (f === 'celestial-citadel') hit = mineNew.some((i) => ['God', 'Demigod'].includes(tribeOf(s, i)));
+        if (f === 'forest') hit = !!s.combat && s.combat.attackerController === p.id && (!before.combat || before.combat.attacker !== s.combat.attacker) && tribeOf(s, s.combat.attacker) === 'Goblin';
+        if (f === 'graveyard') hit = Object.keys(before.perms).some((i) => !s.perms[i] && before.perms[i].controller === p.id && tribeOf(before, i) === 'Zombie' && !fadedNow.has(i));
+        if (f === 'city-night') hit = Object.entries(s.perms).some(([i, q]) => q.controller === p.id && before.perms[i] && q.counters > before.perms[i].counters && tribeOf(s, i) === 'Vampire');
+        if (f === 'neural-nexus') hit = Object.entries(s.perms).some(([i, q]) => q.controller === p.id && q.tapped && before.perms[i] && !before.perms[i].tapped && (typeOf(s, i) === 'Artifact' || tribeOf(s, i) === 'Construct'));
+        if (hit) {
+          flare.add(p.id);
+          if (p.id === ME) snd(`flare-${f}` as Parameters<typeof playSound>[0]);
+        }
+      }
       if (untaps) snd('untap');
 
       // 6 · Negated, or 7 · resolved, cards leaving the stack.
-      const newLog = s.log.slice(before.log.length);
       for (const it of before.stack) {
         if (s.stack.some((x) => x.id === it.id) || it.kind !== 'card') continue;
         const at = P.get(`stack:${it.id}`);
@@ -865,11 +922,11 @@ export function useTableFx(s: GameState, enabled: boolean) {
         setBursts((x) => [...x, ...bs]);
         setTimeout(() => setBursts((x) => x.filter((y) => !bs.some((z) => z.id === y.id))), 900);
       }
-      if (landing.size || bump.size || token.size || reform.size || hit.size || counter.size || hurt.size || heal.size) {
-        const m = { landing, token, reform, hit, counter, hurt, heal, bump };
+      if (landing.size || bump.size || token.size || reform.size || hit.size || counter.size || hurt.size || heal.size || flare.size || shake) {
+        const m = { landing, token, reform, hit, counter, hurt, heal, bump, flare, shake };
         setMarks(m);
-        const longest = Math.max(900, ...[...landing.values()].map((v) => v + 100));
-        setTimeout(() => setMarks((cur) => (cur === m ? { landing: new Map(), token: new Set(), reform: new Set(), hit: new Set(), counter: new Set(), hurt: new Set(), heal: new Set(), bump: new Set() } : cur)), longest);
+        const longest = Math.max(flare.size ? 1500 : 900, ...[...landing.values()].map((v) => v + 100));
+        setTimeout(() => setMarks((cur) => (cur === m ? { landing: new Map(), token: new Set(), reform: new Set(), hit: new Set(), counter: new Set(), hurt: new Set(), heal: new Set(), bump: new Set(), flare: new Set(), shake: false } : cur)), longest);
       }
       for (const x of sounds) playSound(x.k, x.d);
     }
@@ -1003,6 +1060,11 @@ export function FxLayer({ fx, label }: { fx: ReturnType<typeof useTableFx>; labe
             </svg>
           )}
           {b.kind === 'pip' && <span className="pip">{b.text}</span>}
+          {b.kind === 'clash' && (
+            <svg className="star" viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M50 4 L60 36 L94 26 L68 50 L94 74 L60 64 L50 96 L40 64 L6 74 L32 50 L6 26 L40 36 Z" />
+            </svg>
+          )}
         </div>
       ))}
       {fx.floats.map((f) => (

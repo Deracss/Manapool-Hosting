@@ -13,6 +13,7 @@ export interface CardShow {
   name: string;
   type: string;
   tribe?: string;
+  crack?: number; // 0–1: how much of its defense the damage took this turn
   cost: number | null;
   atk: number | string | null;
   def: number | string | null;
@@ -121,6 +122,7 @@ export function showInGame(s: GameState, iid: Iid): CardShow {
     if (other.attachedTo === iid) badges.push({ label: getDef(s.cards[other.iid].cardId).name, tone: 'grey' });
   }
   if (extras.length) base.extra = extras.join(' · ');
+  if (perm.damage > 0 && (typeof d.attack === 'number' || d.attack === '*')) base.crack = Math.min(1, perm.damage / (perm.damage + Math.max(0, defenseOf(s, iid))));
   if (typeof d.attack === 'number' || d.attack === '*') {
     const a = attackOf(s, iid);
     const df = defenseOf(s, iid);
@@ -308,6 +310,13 @@ function CardFace({ c }: { c: CardShow }) {
         )}
         {c.text.trim() ? <RulesText text={c.text} /> : reminder ? <p className="reminder">{reminder}</p> : null}
       </div>
+      {c.crack ? (
+        <svg className="cracks" viewBox="0 0 340 476" aria-hidden="true">
+          <path d="M60 120 l40 50 -25 40 45 55 -15 45 M100 170 l60 -20 M120 265 l-50 30" />
+          {c.crack > 0.34 && <path d="M260 90 l-35 60 30 35 -40 70 20 50 M255 185 l45 20 M215 255 l-40 -10" />}
+          {c.crack > 0.67 && <path d="M170 300 l-20 50 35 30 -30 60 M150 350 l-55 15 M185 380 l50 -5 M120 60 l30 40 -10 30" />}
+        </svg>
+      ) : null}
       {hasStats ? (
         <div className="stats">
           <small>ATK</small>

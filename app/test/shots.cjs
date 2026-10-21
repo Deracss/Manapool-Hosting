@@ -26,7 +26,7 @@ app.whenReady().then(async () => {
       if (process.env.DECK) await click(process.env.DECK);
       await click('Start game');
       await sleep(400);
-      await click('Keep');
+      for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
       for (let i = 0; i < 300 && !(await has('End Main phase')); i++) await sleep(100);
       await js(`window.__manapool.speed && window.__manapool.speed('fast')`);
       await shot('t0');

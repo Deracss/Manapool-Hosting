@@ -24,7 +24,23 @@ export type SoundKind =
   | 'deckRemove'
   | 'deckComplete'
   | 'confirm'
-  | 'deal';
+  | 'deal'
+  | 'playCreature'
+  | 'playSpell'
+  | 'playIncantation'
+  | 'playArtifact'
+  | 'playAnthem'
+  | 'clash'
+  | 'clashBig'
+  | 'manaFlow'
+  | 'flare-demon-field'
+  | 'flare-forest'
+  | 'flare-graveyard'
+  | 'flare-city-night'
+  | 'flare-neural-nexus'
+  | 'flare-celestial-citadel'
+  | 'coin'
+  | 'coinLand';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -152,6 +168,78 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
     noise(a, { dur: 0.06, type: 'lowpass', f: 600, gain: 0.08 });
   },
   // A player is out: one low, slow bell toll.
+  // ---------- playing cards, by type ----------
+  // A creature lands: a soft thump.
+  playCreature: (a) => {
+    tone(a, { f: 140, f2: 70, dur: 0.22, gain: 0.3 });
+    noise(a, { dur: 0.08, type: 'lowpass', f: 800, gain: 0.12 });
+  },
+  // A bright whoosh.
+  playSpell: (a) => noise(a, { dur: 0.32, f: 900, f2: 4200, q: 0.8, gain: 0.16, rise: true }),
+  // A crackle of energy.
+  playIncantation: (a) => {
+    for (let i = 0; i < 6; i++) noise(a, { t: i * 0.035, dur: 0.03, type: 'highpass', f: 2500 + Math.random() * 2500, gain: 0.12 });
+    tone(a, { f: 220, f2: 440, dur: 0.25, type: 'sawtooth', gain: 0.03 });
+  },
+  // A small metallic clank.
+  playArtifact: (a) => {
+    tone(a, { f: 820, dur: 0.18, type: 'triangle', gain: 0.1 });
+    tone(a, { f: 1230, dur: 0.12, type: 'square', gain: 0.03 });
+    noise(a, { dur: 0.04, type: 'highpass', f: 3000, gain: 0.1 });
+  },
+  // A short horn note.
+  playAnthem: (a) => {
+    tone(a, { f: 392, dur: 0.5, type: 'sawtooth', gain: 0.04 });
+    tone(a, { f: 392, dur: 0.5, type: 'sine', gain: 0.09 });
+    tone(a, { t: 0.02, f: 588, dur: 0.45, type: 'sine', gain: 0.04 });
+  },
+  // ---------- combat ----------
+  // A heavy thud with a short metallic ring.
+  clash: (a) => {
+    tone(a, { f: 120, f2: 50, dur: 0.28, gain: 0.4 });
+    noise(a, { dur: 0.06, type: 'highpass', f: 2200, gain: 0.18 });
+    tone(a, { t: 0.02, f: 1560, dur: 0.3, type: 'triangle', gain: 0.05 });
+  },
+  clashBig: (a) => {
+    tone(a, { f: 110, f2: 38, dur: 0.45, gain: 0.5 });
+    noise(a, { dur: 0.12, type: 'lowpass', f: 900, gain: 0.25 });
+    tone(a, { t: 0.02, f: 1400, dur: 0.4, type: 'triangle', gain: 0.06 });
+  },
+  // Mana flowing into a card: a rising shimmer, then a soft chime.
+  manaFlow: (a) => {
+    tone(a, { f: 520, f2: 1040, dur: 0.38, gain: 0.05 });
+    tone(a, { t: 0.36, f: 1320, dur: 0.4, gain: 0.06 });
+  },
+  // ---------- the Field reacts ----------
+  'flare-demon-field': (a) => {
+    noise(a, { dur: 0.7, type: 'lowpass', f: 400, f2: 1600, gain: 0.18, rise: true });
+    tone(a, { f: 70, f2: 50, dur: 0.7, gain: 0.15 });
+  },
+  'flare-forest': (a) => {
+    for (let i = 0; i < 5; i++) noise(a, { t: i * 0.09, dur: 0.12, f: 3000 + i * 300, q: 2, gain: 0.07 });
+  },
+  'flare-graveyard': (a) => {
+    noise(a, { dur: 1.0, f: 500, f2: 300, q: 3, gain: 0.12, rise: true });
+    tone(a, { f: 196, f2: 185, dur: 1.0, gain: 0.03, vib: 4 });
+  },
+  'flare-city-night': (a) => {
+    tone(a, { f: 120, dur: 0.4, type: 'sawtooth', gain: 0.04 });
+    tone(a, { f: 240, dur: 0.4, type: 'square', gain: 0.015 });
+  },
+  'flare-neural-nexus': (a) => {
+    [1760, 2093, 2637].forEach((f, i) => tone(a, { t: i * 0.06, f, dur: 0.07, type: 'square', gain: 0.025 }));
+  },
+  'flare-celestial-citadel': (a) => {
+    [523, 659, 784, 1046].forEach((f) => tone(a, { f, dur: 1.1, gain: 0.03, vib: 3 }));
+  },
+  // ---------- start of the game ----------
+  coin: (a) => {
+    for (let i = 0; i < 10; i++) tone(a, { t: i * 0.08, f: 2400 + (i % 2) * 300, dur: 0.04, type: 'triangle', gain: 0.03 });
+  },
+  coinLand: (a) => {
+    tone(a, { f: 1760, dur: 0.6, gain: 0.07 });
+    tone(a, { f: 2637, dur: 0.4, gain: 0.03 });
+  },
   // ---------- deck builder ----------
   // A soft paper tick.
   cardHover: (a) => noise(a, { dur: 0.035, f: 3200, q: 1.4, gain: 0.05 }),

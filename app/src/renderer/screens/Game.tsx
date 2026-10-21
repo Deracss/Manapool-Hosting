@@ -114,6 +114,27 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   const midDown = useRef<{ timer: ReturnType<typeof setTimeout>; target: { sel: string; label: string }; x: number; y: number } | null>(null);
   // Concede (with a confirmation), the end-of-game effect, the hover preview and opened token stacks.
   const [confirmConcede, setConfirmConcede] = useState(false);
+  // A stronger start: a coin shows who goes first, then the opening hand is dealt card by card.
+  const [intro, setIntro] = useState(() => s.phase === 'mulligan');
+  useEffect(() => {
+    if (!intro) return;
+    playSound('coin');
+    const a = setTimeout(() => playSound('coinLand'), 1150);
+    const b = setTimeout(() => setIntro(false), 2000);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+  }, []);
+  const dealtFor = useRef<string>('');
+  useEffect(() => {
+    if (s.phase !== 'mulligan' || intro || whoMustAct(s) !== ME) return;
+    const hand = s.players[ME].hand;
+    const key = hand.join();
+    if (dealtFor.current === key) return;
+    dealtFor.current = key;
+    hand.forEach((_, i) => playSound('deal', i * 110));
+  }, [s, intro]);
   const [endFx, setEndFx] = useState<'win' | 'lose' | null>(null);
   const [endReady, setEndReady] = useState(false);
   const [zoom, setZoom] = useState<{ iid: Iid; x: number; y: number } | null>(null);
@@ -998,7 +1019,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   })();
 
   return (
-    <div className={`game${me.life <= 2 && !me.eliminated && s.phase !== 'over' ? ' danger' : ''}${pingMode ? ' ping-mode' : ''}${targeting || myDecision ? ' calm' : ''}`} onClick={() => { if (popover) setPopover(null); if (emoteMenu) setEmoteMenu(false); }} onMouseDownCapture={onMiddleDown} onClickCapture={onPingModeClick} onAuxClick={(e) => e.button === 1 && e.preventDefault()}>
+    <div className={`game${me.life <= 2 && !me.eliminated && s.phase !== 'over' ? ' danger' : ''}${pingMode ? ' ping-mode' : ''}${targeting || myDecision ? ' calm' : ''}${fx.marks.shake ? ' shake' : ''}`} onClick={() => { if (popover) setPopover(null); if (emoteMenu) setEmoteMenu(false); }} onMouseDownCapture={onMiddleDown} onClickCapture={onPingModeClick} onAuxClick={(e) => e.button === 1 && e.preventDefault()}>
       <header className="topbar">
         <span style={{ fontFamily: 'var(--display)', fontWeight: 700, letterSpacing: '0.06em' }}>MANAPOOL</span>
         <span className="muted" style={{ fontSize: 15 }}>
@@ -1043,7 +1064,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
               const attacking = s.combat?.attackerController === o.id;
               const defending = s.combat?.defender === o.id;
               const hasPri = who === o.id;
-              const cls = ['opp', drag?.started && drag.zones.players.has(o.id) ? 'drop-ok' : '', attacking ? 'attacking' : '', defending ? 'defending' : '', hasPri && !attacking ? 'priority' : '', o.eliminated ? 'out' : '', moodOf(o.fieldCard)].join(' ');
+              const cls = ['opp', drag?.started && drag.zones.players.has(o.id) ? 'drop-ok' : '', attacking ? 'attacking' : '', defending ? 'defending' : '', hasPri && !attacking ? 'priority' : '', o.eliminated ? 'out' : '', moodOf(o.fieldCard), fx.marks.flare.has(o.id) ? 'flare' : ''].join(' ');
               const faded = (s.fadedOut ?? []).filter((x) => x.controller === o.id);
               return (
                 <section key={o.id} className={cls} aria-label={o.name} data-strip={o.id} data-out={o.eliminated ? `OUT · TURN ${fx.outs.find((x) => x.pid === o.id)?.turn ?? s.turn}` : undefined} onClick={() => !targeting && setExpandPid(o.id)}>
@@ -1110,7 +1131,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
             })}
           </div>
 
-          <section className={`mine ${moodOf(me.fieldCard)}${myPriority || myDecision ? ' priority' : ''}${promptBox ? ' has-prompt' : ''}${drag?.started && drag.zones.field ? ' drop-ok' : ''}${drag?.started && drag.zones.mana ? ' drop-mana' : ''}`} aria-label="Your field" data-zone="field">
+          <section className={`mine ${moodOf(me.fieldCard)}${fx.marks.flare.has(ME) ? ' flare' : ''}${myPriority || myDecision ? ' priority' : ''}${promptBox ? ' has-prompt' : ''}${drag?.started && drag.zones.field ? ' drop-ok' : ''}${drag?.started && drag.zones.mana ? ' drop-mana' : ''}`} aria-label="Your field" data-zone="field">
             <FieldScene field={me.fieldCard} />
             <div className="mine-head">
               <span className="label">YOUR FIELD</span>
@@ -1530,14 +1551,25 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         </div>
       )}
 
-      {mulligan && (
+      {intro && (
+        <div className="coin-intro" aria-live="polite" onClick={() => setIntro(false)} title="Click to skip">
+          <div className="coin">
+            <span>{s.active === ME ? 'Y' : s.players[s.active].name[0]}</span>
+          </div>
+          <b className="coin-text">{s.active === ME ? 'You go first' : `${s.players[s.active].name} goes first`}</b>
+        </div>
+      )}
+
+      {mulligan && !intro && (
         <div className="modal-back">
           <div className="modal" role="dialog" aria-labelledby="mu-h">
             <h2 id="mu-h">Your opening hand</h2>
             <p className="muted">Keep these 7 cards, or shuffle them back and draw 6. You can mulligan once.</p>
             <div className="choices">
-              {me.hand.map((iid) => (
-                <Card key={iid} show={showInGame(s, iid)} scale={0.42} />
+              {me.hand.map((iid, i) => (
+                <div key={iid} className="deal-in" style={{ animationDelay: `${i * 110}ms` }}>
+                  <Card show={showInGame(s, iid)} scale={0.42} />
+                </div>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>

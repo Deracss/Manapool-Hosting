@@ -55,7 +55,7 @@ app.whenReady().then(async () => {
     await sleep(200);
     await click('Start game');
     await sleep(400);
-    await click('Keep');
+    for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
     await wait('End Main phase', 300);
 
     await js(`window.__manapool.giveCard('Research', 20)`);
