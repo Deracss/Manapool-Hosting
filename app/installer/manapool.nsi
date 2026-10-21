@@ -4,7 +4,7 @@ Unicode true
 SetCompressor /SOLID lzma
 
 !define APPNAME "ManaPool"
-!define VERSION "0.1.19"
+!define VERSION "0.2.0"
 !define PUBLISHER "Gustavo Acevedo"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ManaPool"
 
