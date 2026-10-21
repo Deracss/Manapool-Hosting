@@ -18,7 +18,13 @@ export type SoundKind =
   | 'fadeOut'
   | 'orbBreak'
   | 'soul'
-  | 'out';
+  | 'out'
+  | 'cardHover'
+  | 'deckAdd'
+  | 'deckRemove'
+  | 'deckComplete'
+  | 'confirm'
+  | 'deal';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -146,6 +152,30 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
     noise(a, { dur: 0.06, type: 'lowpass', f: 600, gain: 0.08 });
   },
   // A player is out: one low, slow bell toll.
+  // ---------- deck builder ----------
+  // A soft paper tick.
+  cardHover: (a) => noise(a, { dur: 0.035, f: 3200, q: 1.4, gain: 0.05 }),
+  // Two quick rising notes: the card snaps into the deck.
+  deckAdd: (a) => {
+    noise(a, { dur: 0.05, type: 'highpass', f: 2500, gain: 0.08 });
+    tone(a, { f: 660, dur: 0.09, type: 'triangle', gain: 0.1 });
+    tone(a, { t: 0.06, f: 990, dur: 0.12, type: 'triangle', gain: 0.09 });
+  },
+  // A short soft swish downward.
+  deckRemove: (a) => noise(a, { dur: 0.14, f: 2600, f2: 900, gain: 0.1 }),
+  // A small three-note fanfare.
+  deckComplete: (a) => {
+    tone(a, { f: 523, dur: 0.16, gain: 0.1 });
+    tone(a, { t: 0.12, f: 659, dur: 0.16, gain: 0.1 });
+    tone(a, { t: 0.24, f: 784, dur: 0.45, gain: 0.11 });
+    tone(a, { t: 0.24, f: 1046, dur: 0.4, gain: 0.04 });
+  },
+  confirm: (a) => {
+    tone(a, { f: 880, dur: 0.12, gain: 0.07 });
+    tone(a, { t: 0.07, f: 1320, dur: 0.25, gain: 0.06 });
+  },
+  // A card dealt onto the table.
+  deal: (a) => noise(a, { dur: 0.07, f: 2000, f2: 3400, q: 1.1, gain: 0.12 }),
   out: (a) => {
     tone(a, { f: 98, dur: 1.6, gain: 0.22 });
     tone(a, { f: 147, dur: 1.3, gain: 0.1 });

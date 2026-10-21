@@ -30,7 +30,7 @@ export function Menu({ onPlay, onOnline, onBuilder, onRules, onQuit }: { onPlay:
             Quit
           </button>
         </nav>
-        <p style={{ fontSize: 14, color: 'var(--faint)' }}>Version 0.2.1 · 243 cards · 5 precons · every precon card playable</p>
+        <p style={{ fontSize: 14, color: 'var(--faint)' }}>Version 0.2.2 · 243 cards · 5 precons · every precon card playable</p>
       </section>
       <section className="menu-art" aria-hidden="true">
         <div className="ring" style={{ width: 560, height: 560 }} />
