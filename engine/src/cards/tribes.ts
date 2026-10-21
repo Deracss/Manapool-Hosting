@@ -173,6 +173,35 @@ export const zombieScripts: Record<string, CardScript> = {
   'zombie-token': {},
 };
 
+/** Steelshaper Vanguard: offer "tap 2 Artifacts for a keyword" again only after a Yes. */
+function steelshaperOffers(left: number): Effect[] {
+  if (left <= 0) return [];
+  return [
+    {
+      do: 'if',
+      cond: { count: { ...yourArtifacts, untapped: true }, atLeast: 2 },
+      then: [
+        {
+          do: 'may',
+          prompt: 'Tap 2 of your Artifacts to give Steelshaper Vanguard a keyword this turn?',
+          then: [
+            { do: 'choose', from: { zone: 'field', ...yourArtifacts, untapped: true }, as: 'a1', prompt: 'Choose the first Artifact to tap' },
+            { do: 'tap', target: 'var:a1' },
+            { do: 'choose', from: { zone: 'field', ...yourArtifacts, untapped: true }, as: 'a2', prompt: 'Choose the second Artifact to tap' },
+            { do: 'tap', target: 'var:a2' },
+            {
+              do: 'chooseMode',
+              prompt: 'Steelshaper Vanguard gains:',
+              modes: (['CRITICAL', 'DOUBLE STRIKE', 'FACEOFF', 'DMG GAIN', 'RECONFIGURE', 'INDESTRUCTIBLE'] as const).map((k) => ({ label: k, effects: [{ do: 'grant', target: 'self', keyword: k, until: 'turn' } as Effect] })),
+            },
+            ...steelshaperOffers(left - 1),
+          ],
+        },
+      ],
+    },
+  ];
+}
+
 export const constructScripts: Record<string, CardScript> = {
   // All your artifacts gain RECONFIGURE.
   'recalibrator-sentinel': { statics: [{ kind: 'grantKeyword', filter: { controller: 'you', type: 'Artifact' }, keyword: 'RECONFIGURE' }] },
@@ -185,35 +214,8 @@ export const constructScripts: Record<string, CardScript> = {
         label: 'Tap Artifacts for keywords',
         on: 'attackDeclared',
         subject: 'self',
-        effects: [
-          {
-            do: 'repeat',
-            n: 6,
-            effects: [
-              {
-                do: 'if',
-                cond: { count: { ...yourArtifacts, untapped: true }, atLeast: 2 },
-                then: [
-                  {
-                    do: 'may',
-                    prompt: 'Tap 2 of your Artifacts to give Steelshaper Vanguard a keyword this turn?',
-                    then: [
-                      { do: 'choose', from: { zone: 'field', ...yourArtifacts, untapped: true }, as: 'a1', prompt: 'Choose the first Artifact to tap' },
-                      { do: 'tap', target: 'var:a1' },
-                      { do: 'choose', from: { zone: 'field', ...yourArtifacts, untapped: true }, as: 'a2', prompt: 'Choose the second Artifact to tap' },
-                      { do: 'tap', target: 'var:a2' },
-                      {
-                        do: 'chooseMode',
-                        prompt: 'Steelshaper Vanguard gains:',
-                        modes: (['CRITICAL', 'DOUBLE STRIKE', 'FACEOFF', 'DMG GAIN', 'RECONFIGURE', 'INDESTRUCTIBLE'] as const).map((k) => ({ label: k, effects: [{ do: 'grant', target: 'self', keyword: k, until: 'turn' } as Effect] })),
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
+        // Up to once per keyword (6). Saying No ends it for this attack.
+        effects: steelshaperOffers(6),
       },
     ],
   },

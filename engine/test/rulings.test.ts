@@ -419,3 +419,24 @@ test('Mana Portal: the swap is once per round (not again on opponents’ turns)'
   s = advanceTo(s, 0);
   s = settle(act(s, { type: 'activate', player: 0, card: portal, ability: 1 }));
 });
+
+test('Steelshaper Vanguard: saying No ends the keyword offers; each Yes offers again', () => {
+  let s = setup();
+  const vg = put(s, 0, 'Steelshaper Vanguard');
+  for (let i = 0; i < 6; i++) put(s, 0, 'Mana Tree');
+  s = act(s, { type: 'attack', player: 0, attacker: vg, target: 1 });
+  while (!(s.decision && s.decision.kind === 'confirm') && whoMustAct(s) !== null) s = act(s, { type: 'pass', player: whoMustAct(s)! });
+  assert.equal(s.decision?.kind, 'confirm');
+  // Yes once: tap two Artifacts, pick DOUBLE STRIKE, and get asked again.
+  s = act(s, { type: 'confirm', player: 0, accept: true });
+  const trees = s.players[0].field.filter((i) => s.cards[i].cardId === 'mana-tree');
+  s = act(s, { type: 'choose', player: 0, choice: trees[0] });
+  s = act(s, { type: 'choose', player: 0, choice: trees[1] });
+  s = act(s, { type: 'mode', player: 0, index: 1 });
+  assert.ok(hasKeyword(s, vg, 'DOUBLE STRIKE'));
+  assert.equal(s.decision?.kind, 'confirm', 'offered again after a Yes');
+  // No: no more offers.
+  s = act(s, { type: 'confirm', player: 0, accept: false });
+  assert.notEqual(s.decision?.kind, 'confirm');
+  assert.equal(s.log.filter((l) => l.includes('decline')).length, 1);
+});
