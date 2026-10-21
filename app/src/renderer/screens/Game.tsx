@@ -118,6 +118,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   const [endReady, setEndReady] = useState(false);
   const [zoom, setZoom] = useState<{ iid: Iid; x: number; y: number } | null>(null);
   const zoomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverTick = useRef(0);
   const [openStacks, setOpenStacks] = useState<Set<string>>(new Set());
   const [emoteMenu, setEmoteMenu] = useState(false);
   const [bubbles, setBubbles] = useState<Record<number, { id: number; key: number }>>({});
@@ -551,6 +552,12 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
 
   // ---------- bigger preview on hover (after a short pause) ----------
   const zoomIn = (iid: Iid) => {
+    // The soft paper tick from the deck builder (at most one every 80 ms).
+    const now = performance.now();
+    if (now - hoverTick.current > 80) {
+      hoverTick.current = now;
+      playSound('cardHover');
+    }
     if (zoomTimer.current) clearTimeout(zoomTimer.current);
     zoomTimer.current = setTimeout(() => {
       if (dragRef.current) return;
