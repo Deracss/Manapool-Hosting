@@ -23,6 +23,9 @@ interface Seat {
   token: string;
   ws: WebSocket | null;
   leftAt: number | null;
+  ready: boolean;
+  botDeck: string | null; // for open / bot seats: the precon the host picked (null = random)
+  lastEmote: number;
 }
 
 interface Room {
@@ -38,7 +41,7 @@ interface Room {
 const rooms = new Map<string, Room>();
 const where = new Map<WebSocket, { room: Room; seat: number }>();
 
-const openSeat = (): Seat => ({ kind: 'open', name: '', deck: [], deckName: '', field: null, token: '', ws: null, leftAt: null });
+const openSeat = (botDeck: string | null = null): Seat => ({ kind: 'open', name: '', deck: [], deckName: '', field: null, token: '', ws: null, leftAt: null, ready: false, botDeck, lastEmote: 0 });
 const send = (ws: WebSocket | null, m: ServerMsg) => {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m));
 };
@@ -69,7 +72,15 @@ function checkLoadout(m: Loadout): string | null {
 }
 
 function seatsInfo(r: Room): SeatInfo[] {
-  return r.seats.map((s) => ({ name: s.name, kind: s.kind, deckName: s.deckName || undefined, connected: s.kind === 'human' ? !!s.ws : undefined }));
+  return r.seats.map((s) => ({
+    name: s.name,
+    kind: s.kind,
+    deckName: s.deckName || undefined,
+    field: s.field,
+    connected: s.kind === 'human' ? !!s.ws : undefined,
+    ready: s.kind === 'human' ? s.ready : undefined,
+    botDeck: s.kind === 'human' ? undefined : s.botDeck,
+  }));
 }
 
 function sendRoom(r: Room) {
@@ -123,24 +134,27 @@ function drive(r: Room) {
       if (r.game.phase === 'over') sendRoom(r);
       drive(r);
     },
-    action.type === 'pass' ? 120 : 900,
+    // Nobody left to watch (every person at the table is out or gone): let the bots finish quickly.
+    r.seats.some((x, i) => x.kind === 'human' && x.ws && !g.players[i].eliminated) ? (action.type === 'pass' ? 120 : 900) : 5,
   );
 }
 
 function startGame(r: Room) {
   // Players who left don't keep their seat for the next game.
   r.seats = r.seats.map((s) => (s.kind === 'human' && !s.ws ? openSeat() : s));
-  const used = new Set(r.seats.filter((s) => s.kind === 'human').map((s) => s.deckName));
+  for (const s of r.seats) s.ready = false;
+  const used = new Set([...r.seats.filter((s) => s.kind === 'human').map((s) => s.deckName), ...r.seats.filter((s) => s.kind !== 'human' && s.botDeck).map((s) => PRECON_DEFS.find((p) => p.id === s.botDeck)?.name)]);
   const pool = PRECON_DEFS.filter((p) => !used.has(p.name));
   const names = new Set(r.seats.filter((s) => s.kind === 'human').map((s) => s.name));
   r.seats.forEach((s, i) => {
     if (s.kind === 'human') return;
-    const p = (pool.length ? pool : PRECON_DEFS)[Math.floor(Math.random() * (pool.length || PRECON_DEFS.length))];
+    const chosen = s.botDeck ? PRECON_DEFS.find((p) => p.id === s.botDeck) : undefined;
+    const p = chosen ?? (pool.length ? pool : PRECON_DEFS)[Math.floor(Math.random() * (pool.length || PRECON_DEFS.length))];
     const k = pool.indexOf(p);
     if (k >= 0) pool.splice(k, 1);
-    const name = BOT_NAMES.find((n) => !names.has(n)) ?? `Bot ${i + 1}`;
+    const name = s.kind === 'bot' && s.name ? s.name : (BOT_NAMES.find((n) => !names.has(n)) ?? `Bot ${i + 1}`);
     names.add(name);
-    r.seats[i] = { ...openSeat(), kind: 'bot', name, deck: preconCards(p), deckName: p.name, field: p.field };
+    r.seats[i] = { ...openSeat(s.botDeck), kind: 'bot', name, deck: preconCards(p), deckName: p.name, field: p.field };
   });
   r.gameNo++;
   r.game = createGame({
@@ -160,7 +174,7 @@ function uniqueName(r: Room, name: string): string {
 }
 
 function seatHuman(r: Room, i: number, m: Loadout, ws: WebSocket) {
-  r.seats[i] = { kind: 'human', name: uniqueName(r, cleanName(m.name)), deck: m.deck, deckName: String(m.deckName ?? '').slice(0, 40), field: m.field, token: randomBytes(12).toString('hex'), ws, leftAt: null };
+  r.seats[i] = { kind: 'human', name: uniqueName(r, cleanName(m.name)), deck: m.deck, deckName: String(m.deckName ?? '').slice(0, 40), field: m.field, token: randomBytes(12).toString('hex'), ws, leftAt: null, ready: false, botDeck: null, lastEmote: 0 };
   where.set(ws, { room: r, seat: i });
   r.emptySince = null;
 }
@@ -181,6 +195,7 @@ function leave(ws: WebSocket, closing: boolean) {
   } else {
     r.seats[seat] = openSeat();
   }
+  r.seats.forEach((x) => (x.ready = x.kind === 'human' ? x.ready : false));
   if (r.host === seat) {
     const next = r.seats.findIndex((x) => x.kind === 'human' && x.ws);
     if (next >= 0) r.host = next;
@@ -233,7 +248,8 @@ function handle(ws: WebSocket, m: ClientMsg) {
       if (!at) return;
       if (at.room.host !== at.seat) return send(ws, { t: 'error', msg: 'Only the host can start the game.' });
       if (at.room.game && at.room.game.phase !== 'over') return;
-      // Seats that became bots last game open up again for this one.
+      const waiting = at.room.seats.filter((s, i) => s.kind === 'human' && s.ws && i !== at.room.host && !s.ready).map((s) => s.name);
+      if (waiting.length) return send(ws, { t: 'error', msg: `Waiting for ${waiting.join(', ')} to be ready.` });
       return startGame(at.room);
     }
     case 'act': {
@@ -257,6 +273,39 @@ function handle(ws: WebSocket, m: ClientMsg) {
       g.log.push(`[T${g.turn}] ${at.room.seats[at.seat].name} pings ${String(m.label ?? '').slice(0, 80)}: ${kinds[m.kind]}`);
       at.room.seats.forEach((s, i) => i !== at.seat && send(s.ws, { t: 'ping', from: at.seat, sel: m.sel, kind: m.kind }));
       return sendState(at.room);
+    }
+    case 'emote': {
+      if (!at) return;
+      const s = at.room.seats[at.seat];
+      const id = Math.floor(Number(m.id));
+      if (!(id >= 0 && id < 6) || Date.now() - s.lastEmote < 3000) return;
+      s.lastEmote = Date.now();
+      at.room.seats.forEach((x, i) => i !== at.seat && send(x.ws, { t: 'emote', from: at.seat, id }));
+      return;
+    }
+    case 'loadout': {
+      if (!at) return;
+      if (at.room.game && at.room.game.phase !== 'over') return send(ws, { t: 'error', msg: 'You can change your deck between games.' });
+      const s = at.room.seats[at.seat];
+      const bad = checkLoadout({ ...m, name: s.name });
+      if (bad) return send(ws, { t: 'error', msg: bad });
+      s.deck = m.deck;
+      s.deckName = String(m.deckName ?? '').slice(0, 40);
+      s.field = m.field;
+      s.ready = false;
+      return sendRoom(at.room);
+    }
+    case 'botDeck': {
+      if (!at || at.room.host !== at.seat) return;
+      const s = at.room.seats[m.seat];
+      if (!s || s.kind === 'human') return;
+      s.botDeck = m.deck && PRECON_DEFS.some((p) => p.id === m.deck) ? m.deck : null;
+      return sendRoom(at.room);
+    }
+    case 'ready': {
+      if (!at) return;
+      at.room.seats[at.seat].ready = !!m.ready;
+      return sendRoom(at.room);
     }
     case 'leave':
       return leave(ws, false);

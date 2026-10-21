@@ -24,6 +24,8 @@ export interface Settings {
   autoPass: AutoPass;
   sound: boolean;
   volume: number; // 0–1
+  music: number; // 0–1 (0 = off)
+  muteEmotes: boolean;
 }
 
 export const AUTO_PASS_DEFAULTS: AutoPass = { skipNothing: true, stopAttacked: true, stopTargeted: true, stopOppEnd: false, skipOwnSteps: true, passAll: false };
@@ -75,9 +77,9 @@ export function isLegal(deck: Deck): boolean {
 }
 
 export function loadSettings(): Settings {
-  const saved = read<{ botSpeed?: Settings['botSpeed']; autoPass?: AutoPass | boolean; sound?: boolean; volume?: number }>(SETTINGS_KEY, {});
+  const saved = read<{ botSpeed?: Settings['botSpeed']; autoPass?: AutoPass | boolean; sound?: boolean; volume?: number; music?: number; muteEmotes?: boolean }>(SETTINGS_KEY, {});
   const ap = typeof saved.autoPass === 'object' ? { ...AUTO_PASS_DEFAULTS, ...saved.autoPass } : { ...AUTO_PASS_DEFAULTS, skipNothing: saved.autoPass !== false };
-  return { botSpeed: saved.botSpeed ?? 'normal', autoPass: ap, sound: saved.sound ?? true, volume: typeof saved.volume === 'number' ? saved.volume : 0.5 };
+  return { botSpeed: saved.botSpeed ?? 'normal', autoPass: ap, sound: saved.sound ?? true, volume: typeof saved.volume === 'number' ? saved.volume : 0.5, music: typeof saved.music === 'number' ? saved.music : 0.3, muteEmotes: saved.muteEmotes ?? false };
 }
 
 export function saveSettings(s: Settings): void {

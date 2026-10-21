@@ -649,7 +649,8 @@ export function useTableFx(s: GameState, enabled: boolean) {
       const nm = (id: string) => (s.cards[id] ? getDef(s.cards[id].cardId).name : id);
       queued.push({ id: nextId.current++, kind: 'play', iid, show: showInGame(s, iid), who: it.controller === ME ? 'You play' : `${s.players[it.controller].name} plays`, targets: (it as { targets: string[] }).targets.map(nm), ms: it.controller === ME ? 800 : 1400 });
     }
-    if (queued.length) setQueue((q) => [...q, ...queued]);
+    // Falling behind (very fast bots): skip banners and announcements, keep the "X is out" ones.
+    if (queued.length) setQueue((q) => [...q, ...(q.length > 3 ? queued.filter((a) => a.kind === 'out') : queued)]);
     // Cards that left the field: a ghost cracks and fades where they were.
     const faded = new Set((s.fadedOut ?? []).map((p) => p.iid));
     const gone = Object.keys(before.perms).filter((iid) => !s.perms[iid] && rects.current.has(iid));

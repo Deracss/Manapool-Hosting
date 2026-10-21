@@ -712,3 +712,70 @@ p.small, .muted.small { font-size: 13px; margin: 0; }
 .db-actions select { max-width: 240px; }
 .db-card .in-tag { left: 50%; top: auto; bottom: -10px; transform: translateX(-50%); border: 1px solid var(--gold); transition: opacity 0.15s; }
 .db-card:hover .in-tag { opacity: 0; }
+/* ---------- moving Field scenes (0.3.0) ---------- */
+.scene .mv-fly { animation: mvFly 10s ease-in-out infinite; transform-box: fill-box; }
+@keyframes mvFly { 0%, 100% { transform: translate(0, 0); opacity: 0.2; } 25% { transform: translate(14px, -10px); opacity: 0.9; } 50% { transform: translate(4px, -22px); opacity: 0.3; } 75% { transform: translate(-12px, -8px); opacity: 0.85; } }
+.scene .mv-shaft { animation: mvBreathe 9s ease-in-out infinite; }
+@keyframes mvBreathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.scene .mv-win { animation: mvWin 14s steps(1, end) infinite; }
+@keyframes mvWin { 0%, 62% { opacity: 0.75; } 63%, 78% { opacity: 0.05; } 79%, 100% { opacity: 0.75; } }
+.scene .mv-mist { animation: mvMist 16s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes mvMist { 0%, 100% { transform: translateX(-30px) scaleY(1); opacity: 0.8; } 50% { transform: translateX(30px) scaleY(1.2); opacity: 1; } }
+.scene .mv-glow { animation: mvBreathe 8s ease-in-out infinite; }
+.scene .mv-trace { stroke-dasharray: 8 92; animation: mvTrace 8s linear infinite; opacity: 0.9; }
+@keyframes mvTrace { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+.scene .mv-blink { animation: mvTwinkle 5s ease-in-out infinite; }
+@keyframes mvTwinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
+.scene .mv-ember { animation: mvEmber 11s linear infinite; transform-box: fill-box; }
+@keyframes mvEmber { 0% { transform: translate(0, 40px); opacity: 0; } 15% { opacity: 0.9; } 100% { transform: translate(18px, -160px); opacity: 0; } }
+.scene .mv-crack { animation: mvBreathe 4s ease-in-out infinite; }
+.scene .mv-star { animation: mvTwinkle 5s ease-in-out infinite; }
+.scene .mv-ray { animation: mvRay 12s ease-in-out infinite; transform-origin: 50% 0; transform-box: view-box; }
+@keyframes mvRay { 0%, 100% { opacity: 0.6; transform: rotate(-1.2deg); } 50% { opacity: 1; transform: rotate(1.2deg); } }
+.scene .mv-fog { animation: mvFog 24s ease-in-out infinite; transform-box: fill-box; }
+@keyframes mvFog { 0%, 100% { transform: translateX(-40px); } 50% { transform: translateX(40px); } }
+/* Calm: everything holds still while you aim a card or answer a prompt. */
+.game.calm .scene * { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) { .scene * { animation: none !important; } }
+/* tribe emblems (0.3.0) */
+.card .text { position: relative; }
+.card .text > :not(.emblem) { position: relative; }
+.card .text .emblem { position: absolute; left: 50%; top: 56%; width: 62%; max-height: 82%; transform: translate(-50%, -50%); color: var(--cink, #3a3020); opacity: 0.13; pointer-events: none; }
+.card .text .emblem.strong { opacity: 0.22; }
+/* token stacks (0.3.0) */
+.tok-stack { position: relative; cursor: pointer; }
+.tok-stack > .card-box { box-shadow: 5px -5px 0 -1px rgba(160, 130, 60, 0.9), 10px -10px 0 -2px rgba(120, 95, 40, 0.8); }
+.tok-n { position: absolute; right: -10px; top: -12px; z-index: 6; padding: 2px 9px; border-radius: 10px; background: var(--gold); color: #1b1608; font-weight: 900; font-size: 14px; box-shadow: 0 0 0 2px #121419; pointer-events: none; }
+.tok-collapse { align-self: center; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--line2); background: var(--panel); color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.tok-collapse:hover { color: var(--text); }
+/* bigger preview on hover */
+.zoom-card { position: fixed; z-index: 55; pointer-events: none; filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.65)); animation: zoomIn 0.12s ease-out; }
+@keyframes zoomIn { from { opacity: 0; transform: scale(0.94); } }
+/* end of game */
+.end-fx { position: fixed; inset: 0; z-index: 80; pointer-events: none; overflow: hidden; }
+.end-fx.lose { animation: drain 1.3s ease-in forwards; background: rgba(10, 10, 14, 0); }
+@keyframes drain { to { background: rgba(10, 10, 14, 0.7); backdrop-filter: grayscale(1); } }
+.end-fx.win { --p1: #e3b95a; --p2: #fff1cf; --p3: #b8892b; animation: winGlow 1.5s ease-out forwards; }
+@keyframes winGlow { 0% { background: radial-gradient(circle at 50% 55%, rgba(255, 241, 207, 0.35), transparent 60%); } 100% { background: radial-gradient(circle at 50% 55%, rgba(255, 241, 207, 0), transparent 60%); } }
+.end-fx.win.mood-forest { --p1: #9fd7a8; --p2: #e8f5a0; --p3: #3f6b48; }
+.end-fx.win.mood-graveyard { --p1: #dde6ee; --p2: #93a3b6; --p3: #6b7686; }
+.end-fx.win.mood-demon-field { --p1: #ff7a3c; --p2: #ffd29a; --p3: #e8705f; }
+.end-fx.win.mood-city-night { --p1: #a58be8; --p2: #f3c96a; --p3: #c94b5c; }
+.end-fx.win.mood-neural-nexus { --p1: #5fc7cf; --p2: #a7f0f5; --p3: #2b6a70; }
+.end-fx.win.mood-celestial-citadel { --p1: #e3b95a; --p2: #fff6dc; --p3: #b8923f; }
+.end-fx.win i { position: absolute; left: var(--x); top: 70%; width: 14px; height: 9px; border-radius: 50% 0; background: var(--p1); opacity: 0; animation: burst 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+.end-fx.win i:nth-child(3n) { background: var(--p2); width: 9px; height: 9px; border-radius: 50%; }
+.end-fx.win i:nth-child(3n + 1) { background: var(--p3); }
+@keyframes burst { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 10% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--r)); } }
+/* emotes + lobby (0.3.0) */
+.emote-menu { position: absolute; right: 0; top: 42px; z-index: 70; display: flex; flex-direction: column; gap: 2px; padding: 6px; border-radius: 12px; background: var(--panel2); border: 1px solid #4a5060; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); min-width: 150px; }
+.emote-menu button { height: 34px; text-align: left; padding: 0 12px; border: none; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.emote-menu button:hover { background: #313644; }
+.emote-bubble { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); z-index: 20; padding: 6px 14px; border-radius: 16px 16px 16px 4px; background: var(--gold); color: #1b1608; font-weight: 900; font-size: 15px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); pointer-events: none; animation: bubble 3s ease-out forwards; }
+.emote-bubble.mine { top: -40px; }
+@keyframes bubble { 0% { opacity: 0; transform: translate(-50%, 8px) scale(0.8); } 8% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 14% { transform: translate(-50%, 0) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+.me-panel { position: relative; }
+.seat { grid-template-columns: 40px minmax(0, 1fr) auto 90px; }
+.seat-deck { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+.seat-ready { font-size: 13px; font-weight: 800; color: var(--faint); text-align: right; }
+.seat-ready.on { color: var(--green); }

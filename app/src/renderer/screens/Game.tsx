@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ME, setSeat } from '../me';
 import type { MouseEvent } from 'react';
 import { Card, showDef, showInGame } from '../components/Card';
@@ -15,6 +15,8 @@ import type { OutInfo, PayPreview } from './tableParts';
 import type { GameSetup, RematchMode } from './NewGame';
 import { youify } from '../text';
 import { configureSound, playSound } from '../sound';
+import { EMOTES } from '../net';
+import { playMusic, setMusicVolume, stopMusic } from '../music';
 import { meaningOf } from '../glossary';
 import { describeTarget, ifNobodyResponds, meaningfulLines, stackItemCards, stackItemTitle } from '../preview';
 
@@ -56,7 +58,9 @@ export interface OnlineLink {
   act: (a: Action) => void;
   ping: (sel: string, kind: PingKind, label: string) => void;
   onPing: (cb: (from: PlayerId, sel: string, kind: PingKind) => void) => () => void;
-  playAgain: () => void;
+  backToLobby: () => void;
+  emote: (id: number) => void;
+  onEmote: (cb: (from: PlayerId, id: number) => void) => () => void;
 }
 
 export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; online?: OnlineLink; onExit: () => void; onRematch: (mode: RematchMode, first: PlayerId) => void }) {
@@ -108,6 +112,16 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   const [wheel, setWheel] = useState<{ x: number; y: number; sel: string; label: string } | null>(null);
   const pingTimes = useRef<number[]>([]);
   const midDown = useRef<{ timer: ReturnType<typeof setTimeout>; target: { sel: string; label: string }; x: number; y: number } | null>(null);
+  // Concede (with a confirmation), the end-of-game effect, the hover preview and opened token stacks.
+  const [confirmConcede, setConfirmConcede] = useState(false);
+  const [endFx, setEndFx] = useState<'win' | 'lose' | null>(null);
+  const [endReady, setEndReady] = useState(false);
+  const [zoom, setZoom] = useState<{ iid: Iid; x: number; y: number } | null>(null);
+  const zoomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [openStacks, setOpenStacks] = useState<Set<string>>(new Set());
+  const [emoteMenu, setEmoteMenu] = useState(false);
+  const [bubbles, setBubbles] = useState<Record<number, { id: number; key: number }>>({});
+  const lastEmote = useRef(0);
   // Your hand's order on screen: the last "Sort hand" order, with cards drawn since then added on the right.
   const [handOrder, setHandOrder] = useState<Iid[]>([]);
   // Cards that just arrived in your hand glow for a moment in their sorted slot.
@@ -135,7 +149,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
       put: (name: string, pid: PlayerId, tapped = false) =>
         setS((prev) => {
           const next = structuredClone(prev);
-          const c = newInstance(next, cardIdByName(name), pid);
+          const c = newInstance(next, cardIdByName(name), pid, name.endsWith('Token'));
           next.players[pid].field.push(c.iid);
           next.perms[c.iid] = { iid: c.iid, controller: pid, tapped, sick: false, enteredTurn: next.turn, counters: 0, counterAtk: 0, counterDef: 0, countersFrom: {}, damage: 0, mods: [], flags: { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false }, abilitiesUsed: [], memo: [] };
           return next;
@@ -298,6 +312,13 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   }, [popover, targeting, discardOf, expandPid, wheel, pingMode]);
 
   useEffect(() => configureSound(settings.sound, settings.volume), [settings.sound, settings.volume]);
+  // Your Field's music while the game is on.
+  useEffect(() => {
+    setMusicVolume(settings.music);
+    if (s.phase !== 'over') playMusic(s.players[ME]?.fieldCard);
+    else stopMusic();
+  }, [settings.music, s.phase === 'over']);
+  useEffect(() => () => stopMusic(), []);
 
   const updateSettings = (next: Settings) => {
     setSettings(next);
@@ -507,6 +528,129 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     return undefined;
   };
 
+  // The game ends for you: a burst in your Field's style (or the table drains to grey), then the end screen.
+  const someoneWon = s.phase === 'over' && s.winner !== null;
+  // Once you're out, don't wait for banners forever (the others may keep playing fast).
+  const [outWaited, setOutWaited] = useState(false);
+  useEffect(() => {
+    if (!me.eliminated && !someoneWon) return;
+    const t = setTimeout(() => setOutWaited(true), 2500);
+    return () => clearTimeout(t);
+  }, [me.eliminated, someoneWon]);
+  const endNow = (someoneWon || (me.eliminated && !watching)) && (!fx.busy || outWaited);
+  useEffect(() => {
+    if (!endNow || endReady || endFx) return;
+    const won = someoneWon && s.winner === ME;
+    setEndFx(won ? 'win' : 'lose');
+    playSound(won ? 'deckComplete' : 'out');
+    setTimeout(() => {
+      setEndFx(null);
+      setEndReady(true);
+    }, won ? 1500 : 1300);
+  }, [endNow]);
+
+  // ---------- bigger preview on hover (after a short pause) ----------
+  const zoomIn = (iid: Iid) => {
+    if (zoomTimer.current) clearTimeout(zoomTimer.current);
+    zoomTimer.current = setTimeout(() => {
+      if (dragRef.current) return;
+      const el = document.querySelector(`.table [data-iid="${iid}"]`) ?? document.querySelector(`.hand [data-iid="${iid}"]`);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const W = 340 * 0.66;
+      const H = 476 * 0.66;
+      const right = r.right + 12 + W < window.innerWidth - 8;
+      const x = right ? r.right + 12 : r.left - 12 - W;
+      const y = Math.max(8, Math.min(window.innerHeight - H - 8, r.top + r.height / 2 - H / 2));
+      setZoom({ iid, x, y });
+    }, 250);
+  };
+  const zoomOut = () => {
+    if (zoomTimer.current) clearTimeout(zoomTimer.current);
+    zoomTimer.current = null;
+    setZoom(null);
+  };
+
+  // ---------- token stacks: identical tokens in the same state show as one card "×N" ----------
+  const stackKey = (iid: Iid): string | null => {
+    const c = s.cards[iid];
+    const p = s.perms[iid];
+    if (!c?.isToken || !p) return null;
+    // Anything involved in what's happening right now stays on its own.
+    if (inCombat(iid) || topSet.has(iid) || targetSet.has(iid) || decisionOptions.has(iid) || picks.includes(iid) || highlight === iid || (drag?.started && drag.zones.cards.has(iid))) return null;
+    if (p.attachedTo || Object.values(s.perms).some((o) => o.attachedTo === iid)) return null;
+    return JSON.stringify([p.controller, c.cardId, c.override ?? null, [...c.extraKeywords].sort(), p.tapped, p.sick, p.counters, p.counterAtk, p.counterDef, p.damage, p.mods, p.infectedBy ?? null]);
+  };
+  const stackUp = (ids: Iid[]): { iid: Iid; n: number; key: string; members: Iid[]; openKey?: string; lastOpen?: boolean }[] => {
+    const out: { iid: Iid; n: number; key: string; members: Iid[]; openKey?: string; lastOpen?: boolean }[] = [];
+    const at = new Map<string, number>();
+    for (const iid of ids) {
+      const k = stackKey(iid);
+      if (!k) {
+        out.push({ iid, n: 1, key: iid, members: [iid] });
+        continue;
+      }
+      if (openStacks.has(k)) {
+        out.push({ iid, n: 1, key: iid, members: [iid], openKey: k });
+        continue;
+      }
+      const i = at.get(k);
+      if (i !== undefined) {
+        out[i].n++;
+        out[i].members.push(iid);
+      } else {
+        at.set(k, out.length);
+        out.push({ iid, n: 1, key: k, members: [iid] });
+      }
+    }
+    // Mark the last card of each opened stack (it gets the Collapse button).
+    const lastIdx = new Map<string, number>();
+    out.forEach((x, i) => x.openKey && lastIdx.set(x.openKey, i));
+    for (const i of lastIdx.values()) out[i].lastOpen = true;
+    // An opened stack with only one card left closes itself.
+    return out;
+  };
+
+  const wrapStack = (it: { iid: Iid; n: number; key: string; lastOpen?: boolean; openKey?: string }, card: JSX.Element): JSX.Element => {
+    if (it.n > 1)
+      return (
+        <div
+          key={it.key}
+          className="tok-stack"
+          title="Click to spread out"
+          onClickCapture={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setOpenStacks((o) => new Set(o).add(it.key));
+          }}
+        >
+          {card}
+          <span className="tok-n">×{it.n}</span>
+        </div>
+      );
+    if (it.lastOpen && it.openKey)
+      return (
+        <Fragment key={it.key}>
+          {card}
+          <button
+            type="button"
+            className="tok-collapse"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenStacks((o) => {
+                const n = new Set(o);
+                n.delete(it.openKey!);
+                return n;
+              });
+            }}
+          >
+            Collapse
+          </button>
+        </Fragment>
+      );
+    return card;
+  };
+
   // ---------- pings ----------
   const pingTargetOf = (el: Element | null): { sel: string; label: string } | null => {
     const t0 = pingTargetLocal(el);
@@ -562,6 +706,31 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
       }),
     [online, s.players],
   );
+
+  // ---------- quick emotes (online) ----------
+  const showBubble = (pid: PlayerId, id: number) => {
+    const key = Date.now() + Math.random();
+    setBubbles((b) => ({ ...b, [pid]: { id, key } }));
+    setTimeout(() => setBubbles((b) => (b[pid]?.key === key ? (({ [pid]: _, ...rest }) => rest)(b) : b)), 3000);
+  };
+  useEffect(
+    () =>
+      online?.onEmote((from, id) => {
+        if (settings.muteEmotes) return;
+        showBubble(from, id);
+        playSound('counter');
+      }),
+    [online, settings.muteEmotes],
+  );
+  const sendEmote = (id: number) => {
+    setEmoteMenu(false);
+    if (!online) return;
+    if (Date.now() - lastEmote.current < 3000) return setToast('One emote every 3 seconds.');
+    lastEmote.current = Date.now();
+    online.emote(id);
+    showBubble(ME, id);
+    playSound('counter');
+  };
 
   const sendPing = (target: { sel: string; label: string }, kind: PingKind) => {
     setWheel(null);
@@ -652,7 +821,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
 
   const primary = (): { label: string; onClick?: () => void } => {
     if (s.phase === 'over') return { label: 'Game over' };
-    if (s.phase === 'mulligan') return { label: who === ME ? 'Keep or mulligan' : 'Bots are deciding…' };
+    if (s.phase === 'mulligan') return { label: who === ME ? 'Keep or mulligan' : online && who !== null ? `Waiting for ${s.players[who].name}` : 'Bots are deciding…' };
     if (targeting) return { label: 'Cancel', onClick: () => setTargeting(null) };
     if (myDecision) return { label: 'Answer the prompt' };
     if (freeMain) return { label: 'End Main phase', onClick: () => step({ type: 'pass', player: ME }) };
@@ -818,11 +987,11 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     if (freeMain) return 'Glowing cards can be used. Click a card in your hand to play or charge it; click your creature to attack. Hold Alt over a card for details.';
     if (myPriority) return 'You have priority: glowing cards can respond, or pass.';
     if (myDecision) return 'Answer the prompt above.';
-    return 'Bots are taking their actions.';
+    return online ? 'Waiting for the other players.' : 'Bots are taking their actions.';
   })();
 
   return (
-    <div className={`game${me.life <= 2 && !me.eliminated && s.phase !== 'over' ? ' danger' : ''}${pingMode ? ' ping-mode' : ''}`} onClick={() => popover && setPopover(null)} onMouseDownCapture={onMiddleDown} onClickCapture={onPingModeClick} onAuxClick={(e) => e.button === 1 && e.preventDefault()}>
+    <div className={`game${me.life <= 2 && !me.eliminated && s.phase !== 'over' ? ' danger' : ''}${pingMode ? ' ping-mode' : ''}${targeting || myDecision ? ' calm' : ''}`} onClick={() => { if (popover) setPopover(null); if (emoteMenu) setEmoteMenu(false); }} onMouseDownCapture={onMiddleDown} onClickCapture={onPingModeClick} onAuxClick={(e) => e.button === 1 && e.preventDefault()}>
       <header className="topbar">
         <span style={{ fontFamily: 'var(--display)', fontWeight: 700, letterSpacing: '0.06em' }}>MANAPOOL</span>
         <span className="muted" style={{ fontSize: 15 }}>
@@ -835,7 +1004,24 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
             </li>
           ))}
         </ol>
-        <button type="button" className={`btn ping-btn${pingMode ? ' on' : ''}`} style={{ height: 36, marginLeft: 'auto' }} aria-pressed={pingMode} title="Ping: click this, then click anything on the table. Shortcut: middle-click for Look, hold the middle button for all pings." onClick={() => setPingMode(!pingMode)}>
+        {online && (
+          <span style={{ position: 'relative', marginLeft: 'auto' }}>
+            <button type="button" className={`btn ping-btn${emoteMenu ? ' on' : ''}`} style={{ height: 36 }} aria-expanded={emoteMenu} onClick={(e) => { e.stopPropagation(); setEmoteMenu(!emoteMenu); }}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2M9 9.5h.01M15 9.5h.01" /></svg>
+              Emote
+            </button>
+            {emoteMenu && (
+              <span className="emote-menu" role="menu">
+                {EMOTES.map((e, i) => (
+                  <button key={e} type="button" role="menuitem" onClick={(ev) => { ev.stopPropagation(); sendEmote(i); }}>
+                    {e}
+                  </button>
+                ))}
+              </span>
+            )}
+          </span>
+        )}
+        <button type="button" className={`btn ping-btn${pingMode ? ' on' : ''}`} style={{ height: 36, marginLeft: online ? undefined : 'auto' }} aria-pressed={pingMode} title="Ping: click this, then click anything on the table. Shortcut: middle-click for Look, hold the middle button for all pings." onClick={() => setPingMode(!pingMode)}>
           <Icon name="ping" /> {pingMode ? 'Click something…' : 'Ping'}
         </button>
         <button type="button" className="btn" style={{ height: 36 }} onClick={() => setMenuOpen(true)}>
@@ -855,6 +1041,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
               return (
                 <section key={o.id} className={cls} aria-label={o.name} data-strip={o.id} data-out={o.eliminated ? `OUT · TURN ${fx.outs.find((x) => x.pid === o.id)?.turn ?? s.turn}` : undefined} onClick={() => !targeting && setExpandPid(o.id)}>
                   <FieldScene field={o.fieldCard} />
+                  {bubbles[o.id] && <span className="emote-bubble" key={bubbles[o.id].key}>{EMOTES[bubbles[o.id].id]}</span>}
                   <div className="opp-head">
                     <span className="nm">{o.name}</span>
                     <span className={`life${fx.marks.hurt.has(o.id) ? ' fx-hurt' : ''}${fx.marks.heal.has(o.id) ? ' fx-heal' : ''}`} data-life={o.id}>
@@ -885,8 +1072,9 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                     )}
                   </div>
                   <div className="row-cards">
-                    {sortField(s, o.field).map((iid, idx) => (
-                      <Card
+                    {stackUp(sortField(s, o.field)).map((it, idx) => {
+                      const iid = it.iid;
+                      return wrapStack(it, <Card
                         key={iid}
                         iid={iid}
                         tapDelay={s.phase === 'upkeep' && s.active === o.id && !s.perms[iid]?.tapped ? idx * 45 : undefined}
@@ -898,10 +1086,11 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                         dim={dimFor(iid)}
                         tag={tagFor(iid)?.text}
                         tagTone={tagFor(iid)?.tone}
-                        onHover={() => setPreview({ iid })}
+                        onHover={() => { setPreview({ iid }); zoomIn(iid); }}
+                        onLeave={zoomOut}
                         onClick={targetSet.has(iid) ? (e) => { e.stopPropagation(); clickCard(iid, e); } : undefined}
-                      />
-                    ))}
+                      />);
+                    })}
                     {faded.map((perm) => (
                       <div key={perm.iid} className="card-box ghost" style={{ width: 92, height: 128 }}>
                         {getDef(s.cards[perm.iid].cardId).name}: back at End Phase
@@ -941,8 +1130,9 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
               )}
             </div>
             <div className="row-cards">
-              {sortField(s, me.field).map((iid, idx) => (
-                <Card
+              {stackUp(sortField(s, me.field)).map((it, idx) => {
+                const iid = it.iid;
+                return wrapStack(it, <Card
                   key={iid}
                   iid={iid}
                   tapDelay={s.phase === 'upkeep' && s.active === ME && !s.perms[iid]?.tapped ? idx * 45 : undefined}
@@ -954,15 +1144,16 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                   dim={dimFor(iid)}
                   tag={tagFor(iid)?.text}
                   tagTone={tagFor(iid)?.tone}
-                  onHover={() => setPreview({ iid })}
+                  onHover={() => { setPreview({ iid }); zoomIn(iid); }}
+                  onLeave={zoomOut}
                   onPointerDown={(e) => startDrag(iid, 'field', e)}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (justDragged.current) return;
                     clickCard(iid, e);
                   }}
-                />
-              ))}
+                />);
+              })}
               {(s.fadedOut ?? [])
                 .filter((x) => x.controller === ME)
                 .map((perm) => (
@@ -1039,8 +1230,12 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                       onHover={() => {
                         setPreview({ iid });
                         previewPay(iid);
+                        zoomIn(iid);
                       }}
-                      onLeave={() => setPay(null)}
+                      onLeave={() => {
+                        setPay(null);
+                        zoomOut();
+                      }}
                       onPointerDown={(e) => startDrag(iid, 'hand', e)}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1054,6 +1249,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
               {!me.hand.length && <span className="muted">No cards in hand.</span>}
             </div>
             <div className="me-panel">
+              {bubbles[ME] && <span className="emote-bubble mine" key={bubbles[ME].key}>{EMOTES[bubbles[ME].id]}</span>}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span className="nm">You</span>
                 <span className={`life big${me.life <= 2 && !me.eliminated ? ' danger' : ''}${fx.marks.hurt.has(ME) ? ' fx-hurt' : ''}${fx.marks.heal.has(ME) ? ' fx-heal' : ''}`} data-life={ME}>
@@ -1341,7 +1537,47 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         </div>
       )}
 
-      {(winner || (me.eliminated && !watching)) && !fx.busy && (
+      {endFx && (
+        <div className={`end-fx ${endFx} ${moodOf(me.fieldCard)}`} aria-hidden="true">
+          {endFx === 'win' &&
+            Array.from({ length: 46 }, (_, i) => (
+              <i key={i} style={{ ['--x' as string]: `${(i * 37) % 100}%`, ['--dx' as string]: `${((i * 53) % 60) - 30}vw`, ['--dy' as string]: `${-20 - ((i * 29) % 60)}vh`, ['--r' as string]: `${(i * 71) % 360}deg`, animationDelay: `${(i % 9) * 40}ms` }} />
+            ))}
+        </div>
+      )}
+
+      {zoom && s.cards[zoom.iid] && !drag?.started && (
+        <div className="zoom-card" style={{ left: zoom.x, top: zoom.y }} aria-hidden="true">
+          <Card show={showInGame(s, zoom.iid)} scale={0.66} />
+        </div>
+      )}
+
+      {confirmConcede && (
+        <div className="modal-back" onClick={() => setConfirmConcede(false)}>
+          <div className="modal" role="dialog" aria-labelledby="cc-h" style={{ width: 460 }} onClick={(e) => e.stopPropagation()}>
+            <h2 id="cc-h">Concede this game?</h2>
+            <p className="muted" style={{ margin: 0 }}>{online ? "You're out of this game; the others keep playing." : "You're out; the bots keep playing and you can watch the rest."}</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn ghost" autoFocus onClick={() => setConfirmConcede(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn danger"
+                onClick={() => {
+                  setConfirmConcede(false);
+                  setMenuOpen(false);
+                  step({ type: 'concede', player: ME });
+                }}
+              >
+                Concede
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {endNow && endReady && (
         <EndScreen
           s={s}
           outs={fx.outs}
@@ -1361,6 +1597,17 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
             <h2 id="gm-h">Game menu</h2>
             <fieldset style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <legend className="label" style={{ marginBottom: 8 }}>SOUND</legend>
+              {online && (
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input type="checkbox" checked={!settings.muteEmotes} onChange={() => updateSettings({ ...settings, muteEmotes: !settings.muteEmotes })} />
+                  <span>Show other players' emotes</span>
+                </label>
+              )}
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                <span style={{ width: 118 }}>Field music</span>
+                <input type="range" min={0} max={100} step={5} aria-label="Music volume" value={Math.round(settings.music * 100)} onChange={(e) => updateSettings({ ...settings, music: Number(e.target.value) / 100 })} style={{ flex: 1 }} />
+                <span className="muted" style={{ width: 40, textAlign: 'right' }}>{settings.music ? `${Math.round(settings.music * 100)}%` : 'Off'}</span>
+              </div>
               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input type="checkbox" checked={settings.sound} onChange={() => updateSettings({ ...settings, sound: !settings.sound })} />
@@ -1412,6 +1659,11 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
               ))}
             </fieldset>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              {s.phase !== 'over' && !me.eliminated && s.phase !== 'mulligan' && (
+                <button type="button" className="btn danger ghost" style={{ marginRight: 'auto' }} onClick={() => setConfirmConcede(true)}>
+                  Concede
+                </button>
+              )}
               <button type="button" className="btn danger" onClick={onExit}>
                 Leave game
               </button>
@@ -1564,15 +1816,12 @@ function EndScreen({ s, outs, won, over, setup, online, onExit, onRematch, onWat
             <span>{order.map((o) => `${place(o.pid)}${place(o.pid) === 2 ? 'nd' : place(o.pid) === 3 ? 'rd' : 'th'} ${o.pid === ME ? 'You' : s.players[o.pid].name} (turn ${o.turn})`).join(' · ')}</span>
           </div>
         )}
-        {online && over && (
+        {online && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
-            {online.isHost ? (
-              <button type="button" className="btn primary" autoFocus onClick={online.playAgain}>
-                Play again in this room
-              </button>
-            ) : (
-              <p className="muted" style={{ margin: 0 }}>Waiting for the host to start another game…</p>
-            )}
+            <button type="button" className="btn primary" autoFocus onClick={online.backToLobby}>
+              Back to the lobby
+            </button>
+            <p className="muted" style={{ margin: 0 }}>Change decks there; the host starts the next game when everyone is ready.</p>
           </div>
         )}
         {!online && <span className="label" style={{ color: 'var(--gold)', marginTop: 6 }}>PLAY AGAIN</span>}

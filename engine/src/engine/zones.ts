@@ -217,7 +217,7 @@ export function checkState(s: GameState): void {
     }
     for (const p of s.players) {
       if (!p.eliminated && p.life <= 0) {
-        eliminate(s, p.id, 'life reached 0');
+        eliminate(s, p.id, p.conceded ? 'conceded' : 'life reached 0');
         changed = true;
       }
     }

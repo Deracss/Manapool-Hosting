@@ -440,3 +440,13 @@ test('Steelshaper Vanguard: saying No ends the keyword offers; each Yes offers a
   assert.notEqual(s.decision?.kind, 'confirm');
   assert.equal(s.log.filter((l) => l.includes('decline')).length, 1);
 });
+
+test('Concede: the player is out at once, even mid-combat, and the game goes on', () => {
+  let s = setup();
+  const atk = put(s, 0, 'Vampire Duke');
+  s = act(s, { type: 'attack', player: 0, attacker: atk, target: 1 });
+  s = act(s, { type: 'concede', player: 1 });
+  assert.ok(s.players[1].eliminated);
+  assert.ok(s.log.some((l) => l.includes('P1 is eliminated: conceded')));
+  assert.notEqual(whoMustAct(s), null);
+});

@@ -359,6 +359,7 @@ export interface Player {
   souls: number;
   fieldCard: string | null; // chosen Field (by card id)
   eliminated: boolean;
+  conceded?: boolean;
   mulligan: 'pending' | 'kept';
   mulliganUsed: boolean;
   chargesThisTurn: number;
@@ -505,7 +506,8 @@ export type Action =
   | { type: 'guide'; player: PlayerId; top: Iid[]; bottom: Iid[] } // top[0] ends up on top of the deck
   | { type: 'mode'; player: PlayerId; index: number }
   | { type: 'choosePlayer'; player: PlayerId; choice: PlayerId }
-  | { type: 'pass'; player: PlayerId };
+  | { type: 'pass'; player: PlayerId }
+  | { type: 'concede'; player: PlayerId }; // allowed any time: the player is out
 
 export interface PlayerConfig {
   name: string;

@@ -115,6 +115,13 @@ export function apply(state: GameState, action: Action): GameState {
 }
 
 function dispatch(s: GameState, a: Action): void {
+  if (a.type === 'concede') {
+    // Out of the game right away, wherever it stands; settle() removes them like any other elimination.
+    const p = player(s, a.player);
+    p.conceded = true;
+    p.life = 0;
+    return;
+  }
   if (s.phase === 'mulligan') {
     if (a.type !== 'keep' && a.type !== 'mulligan') fail('Everyone must keep or mulligan first.');
     return mulliganStep(s, a.player, a.type === 'mulligan');

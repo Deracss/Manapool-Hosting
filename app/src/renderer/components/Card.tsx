@@ -1,5 +1,6 @@
 // Draws a card in the ManaPool "banner" frame: text only, no art. Cards are laid out at full size (340×476) and scaled.
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react';
+import { emblemFor } from '../emblems';
 import { ME } from '../me';
 import { attackOf, defenseOf, defOf, getDef, keywordsOf } from '../engine';
 import type { CardDef, GameState, Iid } from '../engine';
@@ -272,6 +273,7 @@ function CardFace({ c }: { c: CardShow }) {
   const weight = c.text.length + 30 * Math.max(0, c.text.split('\n').length - 1) + (kws.length ? 40 : 0);
   const textSize = weight <= 70 ? 23 : weight <= 120 ? 21 : weight <= 170 ? 19 : weight <= 230 ? 17 : 15.5;
   const hasStats = c.atk !== null && c.atk !== undefined;
+  const emblem = emblemFor(c.type, c.tribe);
   return (
     <div className="card" style={vars}>
       <div className="banner">
@@ -299,6 +301,11 @@ function CardFace({ c }: { c: CardShow }) {
         </div>
       )}
       <div className="text" style={{ fontSize: textSize }}>
+        {emblem && (
+          <svg className={`emblem${c.text.trim() || reminder ? '' : ' strong'}`} aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <path d={emblem} />
+          </svg>
+        )}
         {c.text.trim() ? <RulesText text={c.text} /> : reminder ? <p className="reminder">{reminder}</p> : null}
       </div>
       {hasStats ? (

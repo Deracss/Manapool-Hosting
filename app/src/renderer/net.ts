@@ -1,9 +1,9 @@
 // Talking to the ManaPool online server (hosted on Render). The free plan sleeps when nobody plays,
 // so before connecting we "wake" it by calling its health page until it answers.
-import { PROTOCOL } from '../../../server/src/protocol.ts';
+import { EMOTES, PROTOCOL } from '../../../server/src/protocol.ts';
 import type { ClientMsg, Loadout, ServerMsg } from '../../../server/src/protocol.ts';
 
-export { PROTOCOL };
+export { EMOTES, PROTOCOL };
 export type { Loadout, ServerMsg };
 
 /** The game's built-in server. Players can point the game at another one under "Server" on the Play online screen. */
