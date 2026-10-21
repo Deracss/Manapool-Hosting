@@ -1,0 +1,44 @@
+{
+  "name": "manapool",
+  "productName": "ManaPool",
+  "version": "0.1.19",
+  "description": "ManaPool card game",
+  "author": "Gustavo Acevedo",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
+    "package:win": "npm run build && electron-builder --win dir --x64 && makensis -V2 installer/manapool.nsi"
+  },
+  "build": {
+    "appId": "com.gustavoacevedo.manapool",
+    "productName": "ManaPool",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "dir",
+      "signAndEditExecutable": false
+    }
+  },
+  "devDependencies": {
+    "@fontsource/alegreya": "^5.3.0",
+    "@fontsource/alegreya-sans": "^5.3.0",
+    "@fontsource/cinzel": "^5.3.0",
+    "@types/node": "^26.6.5",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

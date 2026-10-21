@@ -1,0 +1,24 @@
+{
+  "name": "manapool-server",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Online game server for ManaPool (rooms, bots, hidden information).",
+  "scripts": {
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/server.js --external:ws --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
+    "start": "node dist/server.js",
+    "dev": "npm run build && node dist/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.5.12",
+    "esbuild": "^0.24.0",
+    "typescript": "^7.0.2"
+  }
+}

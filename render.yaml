@@ -1,0 +1,16 @@
+# Render Blueprint: the ManaPool online game server (free plan).
+# In Render: New → Blueprint → pick this GitHub repo. Every push to main redeploys it.
+services:
+  - type: web
+    name: manapool-server
+    runtime: node
+    plan: free
+    region: virginia
+    branch: main
+    buildCommand: cd server && npm ci && npm run build
+    startCommand: node server/dist/server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"

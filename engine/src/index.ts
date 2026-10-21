@@ -1,0 +1,13 @@
+export * from './types.ts';
+export { createGame, apply, whoMustAct, validateDeck, STARTING_LIFE, STARTING_HAND, DECK_SIZE } from './engine/game.ts';
+export { attackOf, defenseOf, keywordsOf, isCreature, boostValue, hasStatic, chargesAllowed, activatedOf, hasKeyword } from './engine/stats.ts';
+export { availableMana } from './engine/mana.ts';
+export { getDef, allDefs, deckCardIds, cardIdByName, keywordGlossary, HIDDEN_CARD } from './cards/registry.ts';
+export { botAction } from './bot.ts';
+export { goblinDeck } from './decks.ts';
+export { canAttack } from './engine/combat.ts';
+export { clashInProgress, targetOptions } from './engine/effects.ts';
+export { PRECON_DEFS, PRECON_ESSENTIALS, preconCards } from './precons.ts';
+export type { Precon } from './precons.ts';
+export { defOf, newInstance } from './engine/util.ts';
+export { viewFor } from './view.ts';

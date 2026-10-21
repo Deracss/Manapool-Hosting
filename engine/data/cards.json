@@ -1,0 +1,4333 @@
+{
+  "game": "ManaPool",
+  "version": "0.2.0",
+  "keywords": {
+    "BLINK": "Leaves the field and returns (keeps counters and modifications).",
+    "BOND": "A Dragon and a Dragon Rider may bond at spell speed, sharing half base stats, non-keyword abilities and types.",
+    "CLASH": "Combat with another creature.",
+    "COMBAT COUNTERS": "X/X counters on creatures.",
+    "COMMAND": "Demand target player (unless specified) X. They may not refuse. Counts as a contract per player.",
+    "CORRUPTED MANA": "1 mana that can only pay for creatures played from your discard pile. A creature in your discard pile can be played by paying its whole cost with Corrupted Mana.",
+    "CRITICAL": "When inflicting damage to another player, they don't draw a card.",
+    "CRITICAL BOOST": "When this creature boosts another creature's attack, that attack gains CRITICAL.",
+    "DEMIGOD": "At the beginning of your Upkeep, reduce the Demigod count by 1. At 0, this creature ascends and becomes a God.",
+    "DEVOUR": "Destroy target creature; gain half its attack/defense and inherit all its keywords.",
+    "DMG GAIN": "If this creature survives a CLASH it gains +1/+1.",
+    "DOUBLE STRIKE": "When inflicting damage to another player, they lose 2 life instead of 1.",
+    "EVASIVE": "Unblockable.",
+    "FACEOFF": "You can select an opposing player's creature as an attack target.",
+    "FADE OUT": "Leaves the game until the End Phase, then returns untapped to its controller's field. Counters stay.",
+    "FLASH": "May be played at Incantation speed.",
+    "GIFT": "Gift target player (unless specified) X. Counts as a contract per player.",
+    "GUIDE": "Look at the top X cards. Put them back in any order or on the bottom in any order.",
+    "HASTE": "Can attack and use TAP abilities the turn it is played.",
+    "INDESTRUCTIBLE": "This creature cannot receive damage or be destroyed. SACRIFICE gets around it.",
+    "INFECT": "At the end of its controller's next turn, the infected creature becomes a 1/1 Zombie with no abilities under your control. If it is destroyed before then, you create a 1/1 Zombie Token.",
+    "OFFER": "Each opponent (unless specified) may accept or refuse X. Each acceptance is a contract (+1 Soul for you).",
+    "PHASE OUT": "Leaves the field until end of turn (keeps counters and modifications).",
+    "RECONFIGURE": "Once per round (from the start of your turn to your next), you may untap this whenever you have priority.",
+    "SACRIFICE": "Destroy a creature you control as a cost; gets around INDESTRUCTIBLE.",
+    "SHAPESHIFTER": "This creature counts as every creature type.",
+    "TRAMPLE": "As in MTG: excess attack over the blocker's defense is dealt to the defending player.",
+    "VIGILANCE": "This creature does not tap when attacking."
+  },
+  "keywordsUsed": [
+    "BOND",
+    "CLASH",
+    "COMBAT COUNTERS",
+    "COMMAND",
+    "CORRUPTED MANA",
+    "CRITICAL",
+    "CRITICAL BOOST",
+    "DEMIGOD",
+    "DEVOUR",
+    "DMG GAIN",
+    "DOUBLE STRIKE",
+    "EVASIVE",
+    "FACEOFF",
+    "FADE OUT",
+    "FLASH",
+    "GUIDE",
+    "HASTE",
+    "INDESTRUCTIBLE",
+    "INFECT",
+    "OFFER",
+    "RECONFIGURE",
+    "SHAPESHIFTER",
+    "VIGILANCE"
+  ],
+  "notes": {
+    "keywordRefs": "Keywords mentioned anywhere in the card text (innate or granted). Effect parsing comes in the engine step.",
+    "speed": "spell = Main phase only; incantation = any time (including your Main phase).",
+    "mana": "Any card may be charged face-down as a Mana Orb (1 mana). Orbs refill at Upkeep; Mana Rocks are tokens that stay until consumed."
+  },
+  "cards": [
+    {
+      "id": "nature-s-dance",
+      "name": "Nature's Dance",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "During your draw phase, you may draw an extra card.",
+      "source": {
+        "tab": "Anthem",
+        "row": 2
+      }
+    },
+    {
+      "id": "war-cry",
+      "name": "War Cry",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "All of your creatures gain +1/1.",
+      "source": {
+        "tab": "Anthem",
+        "row": 3
+      }
+    },
+    {
+      "id": "goblin-assembly",
+      "name": "Goblin Assembly",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "At the end of your draw phase; create a 1/1 Goblin Token.",
+      "source": {
+        "tab": "Anthem",
+        "row": 4
+      }
+    },
+    {
+      "id": "mana-droid",
+      "name": "Mana Droid",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Whenever you charge mana you may draw a card.",
+      "source": {
+        "tab": "Anthem",
+        "row": 5
+      }
+    },
+    {
+      "id": "lair-entrance",
+      "name": "Lair Entrance",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Whenever a creature you control with Combat Counters attacks; you may draw 1 card.",
+      "source": {
+        "tab": "Anthem",
+        "row": 6
+      }
+    },
+    {
+      "id": "tavern",
+      "name": "Tavern",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Creatures you cast cost 1 less",
+      "source": {
+        "tab": "Anthem",
+        "row": 7
+      }
+    },
+    {
+      "id": "royal-banquet",
+      "name": "Royal Banquet",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "END PHASE - If at least 3 creatures Attacked and weren't blocked; Deal 1 damage to any Player.",
+      "source": {
+        "tab": "Anthem",
+        "row": 8
+      }
+    },
+    {
+      "id": "vendor-street",
+      "name": "Vendor Street",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "You may play an extra mana card during your turn.",
+      "source": {
+        "tab": "Anthem",
+        "row": 9
+      }
+    },
+    {
+      "id": "blood-vial",
+      "name": "Blood Vial",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Every second time in a turn your creatures use their own Tap abilities, draw 1 card and add 1 mana until the end of the turn.",
+      "source": {
+        "tab": "Anthem",
+        "row": 10
+      }
+    },
+    {
+      "id": "vampire-castle",
+      "name": "Vampire Castle",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [
+        "VIGILANCE"
+      ],
+      "text": "Vampires you control gain VIGILANCE.",
+      "source": {
+        "tab": "Anthem",
+        "row": 11
+      }
+    },
+    {
+      "id": "mount-olympus",
+      "name": "Mount Olympus",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Whenever you cast a creature with cost 5 or more, create 1 Mana Rock.",
+      "source": {
+        "tab": "Anthem",
+        "row": 12
+      }
+    },
+    {
+      "id": "database",
+      "name": "Database",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "END OF ANY TURN - If you tapped at least 3 Artifacts this turn, create a 1/1 Artifact Creature token with RECONFIGURE.",
+      "source": {
+        "tab": "Anthem",
+        "row": 13
+      }
+    },
+    {
+      "id": "frog-song",
+      "name": "Frog Song",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "GUIDE"
+      ],
+      "text": "Whenever a creature you control triggers an ability, you may GUIDE 1 and draw 1 card.",
+      "source": {
+        "tab": "Anthem",
+        "row": 14
+      }
+    },
+    {
+      "id": "demon-pit",
+      "name": "Demon Pit",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "The first time you OFFER during your turn, also OFFER: swap 1 of your Mana Orbs with 1 card in your hand. Create 1 Mana Rock per contract.",
+      "source": {
+        "tab": "Anthem",
+        "row": 15
+      }
+    },
+    {
+      "id": "fine-print",
+      "name": "Fine Print",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "At 10 Souls - Once during your turn, make an OFFER a command for a player of your choice. - At 20 Souls - Once during your turn, an OFFER is a command - Only one effect resolves per turn.",
+      "source": {
+        "tab": "Anthem",
+        "row": 16
+      }
+    },
+    {
+      "id": "win-win",
+      "name": "Win / Win",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "Whenever no one accepts your OFFER, create 1 Mana Rock.",
+      "source": {
+        "tab": "Anthem",
+        "row": 17
+      }
+    },
+    {
+      "id": "book-of-spells",
+      "name": "Book of Spells",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "You can play Spells as though they were incantations. They are treated as both Spells and Incantations.",
+      "source": {
+        "tab": "Anthem",
+        "row": 18
+      }
+    },
+    {
+      "id": "gambler-s-bounty",
+      "name": "Gambler's Bounty",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "ON UPKEEP - You may throw a coin: ON HEADS - create 2 Mana Rocks. ON TAILS - Destroy a creature you control.",
+      "source": {
+        "tab": "Anthem",
+        "row": 19
+      }
+    },
+    {
+      "id": "tombstone",
+      "name": "Tombstone",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Whenever a Creature in your drop zone is played to your field; generate 1 Mana Rock.",
+      "source": {
+        "tab": "Anthem",
+        "row": 20
+      }
+    },
+    {
+      "id": "mana-harmonics",
+      "name": "Mana Harmonics",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "All your creatures gain \"Tap; add 1 mana to your mana pool until the end of the turn\".",
+      "source": {
+        "tab": "Anthem",
+        "row": 21
+      }
+    },
+    {
+      "id": "token-tide",
+      "name": "Token Tide",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "All your Token creatures gain \"Tap; add 1 mana to your mana pool until the end of the turn\".",
+      "source": {
+        "tab": "Anthem",
+        "row": 22
+      }
+    },
+    {
+      "id": "counterflux-reservoir",
+      "name": "Counterflux Reservoir",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Whenever an opponent uses an Incantation during your turn - Create 1 Mana Rock.",
+      "source": {
+        "tab": "Anthem",
+        "row": 23
+      }
+    },
+    {
+      "id": "corruption-engine",
+      "name": "Corruption Engine",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "When a creature you control dies - Add 1 counter to this card. When at 3 counters - Create 1 Corrupted Mana and reduce 3 counters from this card.",
+      "source": {
+        "tab": "Anthem",
+        "row": 25
+      }
+    },
+    {
+      "id": "path-of-the-seer",
+      "name": "Path of the Seer",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [
+        "GUIDE"
+      ],
+      "text": "ON CHARGE - GUIDE 2.",
+      "source": {
+        "tab": "Anthem",
+        "row": 26
+      }
+    },
+    {
+      "id": "spiteful-bargain",
+      "name": "Spiteful Bargain",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "WHEN YOU'RE DENIED AN OFFER - Select a creature your opponent controls, tap it. Gain 1 counter. ON 3 COUNTERS - Consume the counters and deal 2 damage divided as you choose among opponents.",
+      "source": {
+        "tab": "Anthem",
+        "row": 27
+      }
+    },
+    {
+      "id": "arcane-foundry",
+      "name": "Arcane Foundry",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "You can tap your Artifacts to pay for 1 mana when playing an Artifact.",
+      "source": {
+        "tab": "Anthem",
+        "row": 28
+      }
+    },
+    {
+      "id": "twin-rhythms",
+      "name": "Twin Rhythms",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Your Upkeep effects trigger twice.",
+      "source": {
+        "tab": "Anthem",
+        "row": 29
+      }
+    },
+    {
+      "id": "dragonheart-incubation",
+      "name": "Dragonheart Incubation",
+      "nameIsPlaceholder": false,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "BOND"
+      ],
+      "text": "ETB - Add 1 counter to this card. Whenever there's a BOND in your Field, add 1 Counter ; UPKEEP - Consume all counters on this card and create that many 4/4 Dragon Token",
+      "source": {
+        "tab": "Anthem",
+        "row": 30
+      }
+    },
+    {
+      "id": "anthem-1",
+      "name": "Anthem #1",
+      "nameIsPlaceholder": true,
+      "type": "Anthem",
+      "speed": "spell",
+      "cost": 5,
+      "keywordRefs": [],
+      "text": "You can CHARGE an additional time during your Main Phase.",
+      "source": {
+        "tab": "Anthem",
+        "row": 31
+      }
+    },
+    {
+      "id": "insightful-decree",
+      "name": "Insightful Decree",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 1,
+      "keywordRefs": [
+        "COMMAND"
+      ],
+      "text": "COMMAND target player to draw a card; Draw a card.",
+      "source": {
+        "tab": "Spell",
+        "row": 2
+      }
+    },
+    {
+      "id": "research",
+      "name": "Research",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 1,
+      "keywordRefs": [
+        "GUIDE"
+      ],
+      "text": "GUIDE 2, draw 1.",
+      "source": {
+        "tab": "Spell",
+        "row": 3
+      }
+    },
+    {
+      "id": "sacrifice",
+      "name": "Sacrifice",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Sacrifice a creature; destroy 1 creature.",
+      "source": {
+        "tab": "Spell",
+        "row": 4
+      }
+    },
+    {
+      "id": "repairs",
+      "name": "Repairs",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Return 1 Artifact from your drop to your hand.",
+      "source": {
+        "tab": "Spell",
+        "row": 5
+      }
+    },
+    {
+      "id": "adeventurer-s-breakfast",
+      "name": "Adeventurer's Breakfast",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Draw 1 card, then if you have at least 4 cards in your mana pool; draw 1 card.",
+      "source": {
+        "tab": "Spell",
+        "row": 6
+      }
+    },
+    {
+      "id": "carnival-games",
+      "name": "Carnival Games",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "OFFER: search your deck for a card that costs 2 or less, add it to your hand and shuffle. Then draw 1 card and gain 1 extra Soul per contract.",
+      "source": {
+        "tab": "Spell",
+        "row": 7
+      }
+    },
+    {
+      "id": "mana-surge",
+      "name": "Mana surge",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Add 3 mana to your mana pool until the end of your turn.",
+      "source": {
+        "tab": "Spell",
+        "row": 8
+      }
+    },
+    {
+      "id": "mana-ramp",
+      "name": "Mana Ramp",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Charge 1 mana from your hand.",
+      "source": {
+        "tab": "Spell",
+        "row": 9
+      }
+    },
+    {
+      "id": "mimicry-magic",
+      "name": "Mimicry Magic",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Copy your next Spell or incantation. You may choose new targets for the copy.",
+      "source": {
+        "tab": "Spell",
+        "row": 10
+      }
+    },
+    {
+      "id": "disarm",
+      "name": "Disarm",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Destroy target artifact",
+      "source": {
+        "tab": "Spell",
+        "row": 11
+      }
+    },
+    {
+      "id": "reinforcements",
+      "name": "Reinforcements",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Draw 1 card for each creature you control.",
+      "source": {
+        "tab": "Spell",
+        "row": 12
+      }
+    },
+    {
+      "id": "shade",
+      "name": "Shade",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "ILLUSION 3/1 attacking target player.",
+      "source": {
+        "tab": "Spell",
+        "row": 13
+      }
+    },
+    {
+      "id": "educated-civilian",
+      "name": "Educated Civilian",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Destroy target Anthem.",
+      "source": {
+        "tab": "Spell",
+        "row": 14
+      }
+    },
+    {
+      "id": "hymn",
+      "name": "Hymn",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "For each anthem on the board - draw 1 card.",
+      "source": {
+        "tab": "Spell",
+        "row": 15
+      }
+    },
+    {
+      "id": "anthropomorph",
+      "name": "Anthropomorph",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Target creature becomes a 1/1 Human with no abilities.",
+      "source": {
+        "tab": "Spell",
+        "row": 16
+      }
+    },
+    {
+      "id": "parasitic-society",
+      "name": "Parasitic Society",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Add 1 mana to your mana pool for each creature with Combat Counters.",
+      "source": {
+        "tab": "Spell",
+        "row": 17
+      }
+    },
+    {
+      "id": "out-of-bullets",
+      "name": "Out of Bullets",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Discard your hand; and draw x (x = amount of discarded cards).",
+      "source": {
+        "tab": "Spell",
+        "row": 18
+      }
+    },
+    {
+      "id": "infernal-tutor",
+      "name": "Infernal Tutor",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "GUIDE",
+        "OFFER"
+      ],
+      "text": "OFFER: create a 1/1 Demon Token with \"Tap: draw 1 card.\" Then GUIDE 2 per contract and draw 1 card.",
+      "source": {
+        "tab": "Spell",
+        "row": 19
+      }
+    },
+    {
+      "id": "divide-and-conquer",
+      "name": "Divide and Conquer",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Divide 5 damage among selected creatures.",
+      "source": {
+        "tab": "Spell",
+        "row": 20
+      }
+    },
+    {
+      "id": "choir",
+      "name": "Choir",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "If you have at least 2 Anthems in the field; Search your deck for an Anthem and add it to your hand.",
+      "source": {
+        "tab": "Spell",
+        "row": 21
+      }
+    },
+    {
+      "id": "reset",
+      "name": "Reset",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Untap all of your artifacts.",
+      "source": {
+        "tab": "Spell",
+        "row": 22
+      }
+    },
+    {
+      "id": "switching-sides",
+      "name": "Switching Sides",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Choose 1 Creature you control and 1 Creature an Opponent controls - Switch control and untap the Creature you now control.",
+      "source": {
+        "tab": "Spell",
+        "row": 23
+      }
+    },
+    {
+      "id": "rinse",
+      "name": "Rinse",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Draw 3 cards.",
+      "source": {
+        "tab": "Spell",
+        "row": 24
+      }
+    },
+    {
+      "id": "goblin-soup",
+      "name": "Goblin Soup",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Sacrifice x \"Goblin\" creatures you control, deal damage equal to the sum of the sacrificed creatures to all the creatures target opponent controls.",
+      "source": {
+        "tab": "Spell",
+        "row": 25
+      }
+    },
+    {
+      "id": "frantic-summon",
+      "name": "Frantic Summon",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Reveal cards from the top of your deck until you reveal a creature; play that creature and send the remaining cards to the discard pile.",
+      "source": {
+        "tab": "Spell",
+        "row": 26
+      }
+    },
+    {
+      "id": "reanimation",
+      "name": "Reanimation",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Return target creature from a discard pile to your field.",
+      "source": {
+        "tab": "Spell",
+        "row": 27
+      }
+    },
+    {
+      "id": "raining-arrows",
+      "name": "Raining Arrows",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 5,
+      "keywordRefs": [
+        "CRITICAL"
+      ],
+      "text": "Deal x damage to target creature or player (x = the sum of all of your creature's attack). If x>6; gain CRITICAL",
+      "source": {
+        "tab": "Spell",
+        "row": 28
+      }
+    },
+    {
+      "id": "mana-processing-unit",
+      "name": "Mana Processing Unit",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 5,
+      "keywordRefs": [],
+      "text": "Add mana to your mana pool equal to have the amount of artifacts on the board, rounded down.",
+      "source": {
+        "tab": "Spell",
+        "row": 29
+      }
+    },
+    {
+      "id": "arcane-spell",
+      "name": "Arcane Spell",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 6,
+      "keywordRefs": [],
+      "text": "Play 2 cards with cost 4 or less from your hand; draw 1 card.",
+      "source": {
+        "tab": "Spell",
+        "row": 30
+      }
+    },
+    {
+      "id": "abyssal-disposal",
+      "name": "Abyssal Disposal",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Search your deck for 1 creature and send it to the Discard Pile.",
+      "source": {
+        "tab": "Spell",
+        "row": 31
+      }
+    },
+    {
+      "id": "ragnarok",
+      "name": "Ragnarok",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 5,
+      "keywordRefs": [],
+      "text": "Return all creatures to the hand.",
+      "source": {
+        "tab": "Spell",
+        "row": 32
+      }
+    },
+    {
+      "id": "cosmic-channeling",
+      "name": "Cosmic Channeling",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Charge 1 mana from the top of your deck.",
+      "source": {
+        "tab": "Spell",
+        "row": 33
+      }
+    },
+    {
+      "id": "spell-1",
+      "name": "Spell #1",
+      "nameIsPlaceholder": true,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Create a 2/2 Shapeshifter creature",
+      "source": {
+        "tab": "Spell",
+        "row": 34
+      }
+    },
+    {
+      "id": "echoes-of-the-past",
+      "name": "Echoes of the Past",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Play a Spell or Incantation from your discard pile. Pay its cost.",
+      "source": {
+        "tab": "Spell",
+        "row": 35
+      }
+    },
+    {
+      "id": "replica-creation",
+      "name": "Replica Creation",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Create a copy of target Artifact on the board.",
+      "source": {
+        "tab": "Spell",
+        "row": 36
+      }
+    },
+    {
+      "id": "honorable-sacrifice",
+      "name": "Honorable Sacrifice",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Your opponents sacrifice the creature with the highest attack they control.",
+      "source": {
+        "tab": "Spell",
+        "row": 37
+      }
+    },
+    {
+      "id": "creature-retrieval",
+      "name": "Creature Retrieval",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Move one creature from your discard pile to your hand.",
+      "source": {
+        "tab": "Spell",
+        "row": 38
+      }
+    },
+    {
+      "id": "pact-of-insight",
+      "name": "Pact of Insight",
+      "nameIsPlaceholder": false,
+      "type": "Spell",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "OFFER: create a 1/1 Pact Token with \"At the start of your Upkeep, you and the player who OFFERED this may each draw 1 card.\"",
+      "source": {
+        "tab": "Spell",
+        "row": 39
+      }
+    },
+    {
+      "id": "morale-boost",
+      "name": "Morale Boost",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [
+        "CLASH"
+      ],
+      "text": "ON ANY CLASH - Target creature gains +2/0 or +0/2 until the end of Combat",
+      "source": {
+        "tab": "Incantation",
+        "row": 2
+      }
+    },
+    {
+      "id": "fireball",
+      "name": "Fireball",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Deal 3 damage to any creature.",
+      "source": {
+        "tab": "Incantation",
+        "row": 3
+      }
+    },
+    {
+      "id": "divine-judgment",
+      "name": "Divine judgment",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Destroy a creature with mana cost 4 or less.",
+      "source": {
+        "tab": "Incantation",
+        "row": 4
+      }
+    },
+    {
+      "id": "no",
+      "name": "No!",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Negate the play of an Incantation or Spell.",
+      "source": {
+        "tab": "Incantation",
+        "row": 5
+      }
+    },
+    {
+      "id": "two-for-one",
+      "name": "Two for one",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Draw 3 cards and lose 1 life.",
+      "source": {
+        "tab": "Incantation",
+        "row": 6
+      }
+    },
+    {
+      "id": "blink",
+      "name": "Blink",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Target permanent leaves the field. It returns to the field at the end of the turn.",
+      "source": {
+        "tab": "Incantation",
+        "row": 7
+      }
+    },
+    {
+      "id": "bounce",
+      "name": "Bounce",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Return target permanent from the field to the owner's hand.",
+      "source": {
+        "tab": "Incantation",
+        "row": 8
+      }
+    },
+    {
+      "id": "end-of-war",
+      "name": "End of War",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 7,
+      "keywordRefs": [],
+      "text": "Destroy all creatures on the field.",
+      "source": {
+        "tab": "Incantation",
+        "row": 9
+      }
+    },
+    {
+      "id": "shields-up",
+      "name": "Shields Up!",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 1,
+      "keywordRefs": [
+        "CLASH"
+      ],
+      "text": "ON ANY CLASH - Target creature gains +0/2 until the end of CLASH.",
+      "source": {
+        "tab": "Incantation",
+        "row": 10
+      }
+    },
+    {
+      "id": "confused-knight",
+      "name": "Confused Knight",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Switch target creature's attack with its defense.",
+      "source": {
+        "tab": "Incantation",
+        "row": 11
+      }
+    },
+    {
+      "id": "power-chord",
+      "name": "Power Chord",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 1,
+      "keywordRefs": [
+        "CRITICAL",
+        "CLASH"
+      ],
+      "text": "ON ANY CLASH - Target creature gains CRITICAL until the end of CLASH.",
+      "source": {
+        "tab": "Incantation",
+        "row": 12
+      }
+    },
+    {
+      "id": "angel-s-protection",
+      "name": "Angel's Protection",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [
+        "INDESTRUCTIBLE"
+      ],
+      "text": "Target creature gains INDESTRUCTIBLE until the end of the turn.",
+      "source": {
+        "tab": "Incantation",
+        "row": 13
+      }
+    },
+    {
+      "id": "low-kick",
+      "name": "Low Kick",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Destroy all tapped creatures an opponent you battled this turn controls.",
+      "source": {
+        "tab": "Incantation",
+        "row": 14
+      }
+    },
+    {
+      "id": "echoing-reflection",
+      "name": "Echoing Reflection",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Copy target card being played.",
+      "source": {
+        "tab": "Incantation",
+        "row": 15
+      }
+    },
+    {
+      "id": "nullify-the-arcane",
+      "name": "Nullify the Arcane",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Negate target Incantation or Spell of cost 5 or greater.",
+      "source": {
+        "tab": "Incantation",
+        "row": 16
+      }
+    },
+    {
+      "id": "price-of-passage",
+      "name": "Price of Passage",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "OFFER a player to pay 1; otherwise negate the card being played.",
+      "source": {
+        "tab": "Incantation",
+        "row": 17
+      }
+    },
+    {
+      "id": "shadowbane-sacrifice",
+      "name": "Shadowbane Sacrifice",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Negate target card being played and destroy 1 creature you control.",
+      "source": {
+        "tab": "Incantation",
+        "row": 18
+      }
+    },
+    {
+      "id": "swords-up",
+      "name": "Swords Up!",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 1,
+      "keywordRefs": [
+        "CLASH"
+      ],
+      "text": "ON ANY CLASH - Target creature gains +2/0 until the end of CLASH.",
+      "source": {
+        "tab": "Incantation",
+        "row": 19
+      }
+    },
+    {
+      "id": "god-s-blessing",
+      "name": "God's Blessing",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 3,
+      "keywordRefs": [
+        "INDESTRUCTIBLE"
+      ],
+      "text": "All your creatures gain INDESTRUCTIBLE until the end of the turn",
+      "source": {
+        "tab": "Incantation",
+        "row": 21
+      }
+    },
+    {
+      "id": "topple-the-mighty",
+      "name": "Topple the Mighty",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Destroy a creature with mana cost 5 or higher.",
+      "source": {
+        "tab": "Incantation",
+        "row": 22
+      }
+    },
+    {
+      "id": "fury-surge",
+      "name": "Fury Surge",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [
+        "DOUBLE STRIKE"
+      ],
+      "text": "ON ATTACK - Target attacking creature gains DOUBLE STRIKE until the end of Battle.",
+      "source": {
+        "tab": "Incantation",
+        "row": 23
+      }
+    },
+    {
+      "id": "apocalyptic-cleansing",
+      "name": "Apocalyptic Cleansing",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 9,
+      "keywordRefs": [],
+      "text": "Destroy all cards on the field.",
+      "source": {
+        "tab": "Incantation",
+        "row": 24
+      }
+    },
+    {
+      "id": "arcane-vanishing",
+      "name": "Arcane Vanishing",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 4,
+      "keywordRefs": [
+        "FADE OUT"
+      ],
+      "text": "Your permanents FADE OUT.",
+      "source": {
+        "tab": "Incantation",
+        "row": 25
+      }
+    },
+    {
+      "id": "artificer-s-insight",
+      "name": "Artificer's Insight",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 3,
+      "keywordRefs": [
+        "GUIDE"
+      ],
+      "text": "GUIDE 3, Draw 1 card. You may reveal the card if it's an Artifact and create 1 Mana Rock.",
+      "source": {
+        "tab": "Incantation",
+        "row": 26
+      }
+    },
+    {
+      "id": "forgotten-memory",
+      "name": "Forgotten Memory",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Add 1 card from your drop to your hand.",
+      "source": {
+        "tab": "Incantation",
+        "row": 27
+      }
+    },
+    {
+      "id": "summoning-seal",
+      "name": "Summoning Seal",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Negate the Play of a Creature.",
+      "source": {
+        "tab": "Incantation",
+        "row": 28
+      }
+    },
+    {
+      "id": "counter-the-counter",
+      "name": "Counter the Counter",
+      "nameIsPlaceholder": false,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 1,
+      "keywordRefs": [],
+      "text": "Negate target Counter card (a Spell or Incantation that negates).",
+      "source": {
+        "tab": "Incantation",
+        "row": 29
+      }
+    },
+    {
+      "id": "enchanted-mace",
+      "name": "Enchanted Mace",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [
+        "CRITICAL"
+      ],
+      "text": "Pay 1 - Equip to target creature you control (Main phase). Equipped creature gains CRITICAL.",
+      "source": {
+        "tab": "Artifact",
+        "row": 2
+      }
+    },
+    {
+      "id": "lightweight-sandals",
+      "name": "Lightweight Sandals",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 1,
+      "keywordRefs": [
+        "HASTE"
+      ],
+      "text": "Pay 1 - Equip to target creature you control (Main phase). Equipped creature gains HASTE.",
+      "source": {
+        "tab": "Artifact",
+        "row": 3
+      }
+    },
+    {
+      "id": "fangs",
+      "name": "Fangs",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [
+        "DMG GAIN"
+      ],
+      "text": "Pay 2 - Equip to target creature you control (Main phase). Equipped creature gains DMG GAIN.",
+      "source": {
+        "tab": "Artifact",
+        "row": 4
+      }
+    },
+    {
+      "id": "sleight-of-hand",
+      "name": "Sleight of Hand",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Tap; Draw 1 card.",
+      "source": {
+        "tab": "Artifact",
+        "row": 5
+      }
+    },
+    {
+      "id": "mana-tree",
+      "name": "Mana Tree",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Tap; Add 1 mana to your mana pool until the end of the turn.",
+      "source": {
+        "tab": "Artifact",
+        "row": 6
+      }
+    },
+    {
+      "id": "magic-shield",
+      "name": "Magic Shield",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "2cost; Equip to a creature you control - Equipped creature cannot be targeted by your opponent's card effects.",
+      "source": {
+        "tab": "Artifact",
+        "row": 7
+      }
+    },
+    {
+      "id": "mana-portal",
+      "name": "Mana Portal",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Tap: add 1 mana until the end of the turn. Once per round, you may swap 1 of your Mana Orbs with 1 card in your hand (the new Orb is filled).",
+      "source": {
+        "tab": "Artifact",
+        "row": 8
+      }
+    },
+    {
+      "id": "dark-dealings",
+      "name": "Dark Dealings",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Tap - Add 1 mana to your mana pool until the end of the turn - Once per turn, you may destroy 1 Mana Card and add 1 mana to your Mana Pool until the end of the turn.",
+      "source": {
+        "tab": "Artifact",
+        "row": 9
+      }
+    },
+    {
+      "id": "truesight-helmet",
+      "name": "Truesight Helmet",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [
+        "FACEOFF"
+      ],
+      "text": "Pay 2 - Equip to target creature you control (Main phase). Equipped creature gains FACEOFF.",
+      "source": {
+        "tab": "Artifact",
+        "row": 10
+      }
+    },
+    {
+      "id": "exalted-weapon",
+      "name": "Exalted Weapon",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "DOUBLE STRIKE"
+      ],
+      "text": "Pay 2 - Equip to target creature you control (Main phase). Equipped creature gains DOUBLE STRIKE.",
+      "source": {
+        "tab": "Artifact",
+        "row": 11
+      }
+    },
+    {
+      "id": "mana-conductor",
+      "name": "Mana Conductor",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Tap; Send 1 card from your hand to the bottom of the deck; create 1 mana rock.",
+      "source": {
+        "tab": "Artifact",
+        "row": 12
+      }
+    },
+    {
+      "id": "the-gods-blessing",
+      "name": "The Gods' Blessing",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "INDESTRUCTIBLE"
+      ],
+      "text": "Pay 2 - Equip to target creature you control (Main phase). Equipped creature gains INDESTRUCTIBLE.",
+      "source": {
+        "tab": "Artifact",
+        "row": 13
+      }
+    },
+    {
+      "id": "weapons-rack",
+      "name": "Weapons Rack",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Tap; For each Artifact that equips in your field, your creatures gain +1/1 until the end of the turn.",
+      "source": {
+        "tab": "Artifact",
+        "row": 14
+      }
+    },
+    {
+      "id": "shadowveil-shroud",
+      "name": "Shadowveil Shroud",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Tap pay 3; Equip to target creature. Equipped creature gains Evasive.",
+      "source": {
+        "tab": "Artifact",
+        "row": 15
+      }
+    },
+    {
+      "id": "corrupted-mana-tree",
+      "name": "Corrupted Mana Tree",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Tap pay 1; Create 1 Corrupted Mana Rock.",
+      "source": {
+        "tab": "Artifact",
+        "row": 16
+      }
+    },
+    {
+      "id": "unholy-grimoire",
+      "name": "Unholy Grimoire",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Tap; Destroy 1 Zombie you control; Create 1 Corrupted Mana Rock",
+      "source": {
+        "tab": "Artifact",
+        "row": 17
+      }
+    },
+    {
+      "id": "grim-gauntlet",
+      "name": "Grim Gauntlet",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 2,
+      "keywordRefs": [],
+      "text": "Tap; Create a 1/1 Zombie Token.",
+      "source": {
+        "tab": "Artifact",
+        "row": 18
+      }
+    },
+    {
+      "id": "elemental-well",
+      "name": "Elemental Well",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Tap; Add 2 mana to your mana pool until the end of the turn.",
+      "source": {
+        "tab": "Artifact",
+        "row": 19
+      }
+    },
+    {
+      "id": "crystal-nexus",
+      "name": "Crystal Nexus",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Tap; Create 1 Mana Rock.",
+      "source": {
+        "tab": "Artifact",
+        "row": 20
+      }
+    },
+    {
+      "id": "foundry-stone",
+      "name": "Foundry Stone",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [
+        "GUIDE"
+      ],
+      "text": "TAP - GUIDE 1, you may reveal an Artifact from those cards and add it to your hand. Artifacts you play cost 1 less.",
+      "source": {
+        "tab": "Artifact",
+        "row": 21
+      }
+    },
+    {
+      "id": "shifting-relic",
+      "name": "Shifting Relic",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Pay 2 - Become a copy of target creature or artifact until the end of the turn. This card is treated as both an Artifact and a Creature when copying a Creature.",
+      "source": {
+        "tab": "Artifact",
+        "row": 22
+      }
+    },
+    {
+      "id": "insight-orb",
+      "name": "Insight Orb",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Tap - Add 1 mana to your mana pool and draw a card.",
+      "source": {
+        "tab": "Artifact",
+        "row": 23
+      }
+    },
+    {
+      "id": "resonant-mana-node",
+      "name": "Resonant Mana Node",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "RECONFIGURE. Tap: add 1 mana until the end of the turn.",
+      "source": {
+        "tab": "Artifact",
+        "row": 25
+      }
+    },
+    {
+      "id": "runes-of-configuration",
+      "name": "Runes of Configuration",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "Tap: target Artifact gains RECONFIGURE.",
+      "source": {
+        "tab": "Artifact",
+        "row": 26
+      }
+    },
+    {
+      "id": "automaton-forge",
+      "name": "Automaton Forge",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "TAP - Create a 1/1 Construct Token with RECONFIGURE",
+      "source": {
+        "tab": "Artifact",
+        "row": 27
+      }
+    },
+    {
+      "id": "machinist-s-reservoir",
+      "name": "Machinist's Reservoir",
+      "nameIsPlaceholder": false,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 4,
+      "keywordRefs": [],
+      "text": "Whenever another Artifact is tapped under your control - Gain 1 Counter.\nTAP - Consume 3 counters, draw 1 card; TAP consume 6 counters - All activated abilities cost 2 less until the end of the turn; TAP - Consume 12 counters - Untap all your Artifacts",
+      "source": {
+        "tab": "Artifact",
+        "row": 29
+      }
+    },
+    {
+      "id": "artifact-1",
+      "name": "Artifact #1",
+      "nameIsPlaceholder": true,
+      "type": "Artifact",
+      "speed": "spell",
+      "cost": 3,
+      "keywordRefs": [],
+      "text": "Whenever a creature with +1/1 counters leaves the battlefield under your control, you may move the counters to this card.\nTAP - Move any number of counters from this card to target creature you control",
+      "source": {
+        "tab": "Artifact",
+        "row": 30
+      }
+    },
+    {
+      "id": "mourning-marauder",
+      "name": "Mourning Marauder",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Whenever one of your creatures gets destroyed, you may draw 1 card.",
+      "source": {
+        "tab": "Zombie",
+        "row": 2
+      }
+    },
+    {
+      "id": "zombie-spawn",
+      "name": "Zombie Spawn",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "",
+      "source": {
+        "tab": "Zombie",
+        "row": 3
+      }
+    },
+    {
+      "id": "cryptic-reclaimer",
+      "name": "Cryptic Reclaimer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "During your turn, you may send this card to your Discard Pile; add 1 Zombie from your Discard Pile to your hand.",
+      "source": {
+        "tab": "Zombie",
+        "row": 4
+      }
+    },
+    {
+      "id": "gravebound-martyr",
+      "name": "Gravebound Martyr",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "Tap - Destroy this creature - When this creature is destroyed; Reduce the cost of your next Zombie creature played this turn by 2.",
+      "source": {
+        "tab": "Zombie",
+        "row": 5
+      }
+    },
+    {
+      "id": "resilient-revenant",
+      "name": "Resilient Revenant",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Whenever this card is destroyed; Return it to your field tapped.",
+      "source": {
+        "tab": "Zombie",
+        "row": 6
+      }
+    },
+    {
+      "id": "graveborn-guardian",
+      "name": "Graveborn Guardian",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Whenever this card is destroyed; you may create a 1/1 Zombie Token and add this card to your hand.",
+      "source": {
+        "tab": "Zombie",
+        "row": 7
+      }
+    },
+    {
+      "id": "morbid-manipulator",
+      "name": "Morbid Manipulator",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "TAP; Destroy 1 creature you control and create a 1/1 Zombie Token.",
+      "source": {
+        "tab": "Zombie",
+        "row": 8
+      }
+    },
+    {
+      "id": "necromantic-summoner",
+      "name": "Necromantic Summoner",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "ETB - Return target Zombie from your Discard Pile to your field.",
+      "source": {
+        "tab": "Zombie",
+        "row": 9
+      }
+    },
+    {
+      "id": "dread-envoy",
+      "name": "Dread Envoy",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "All Your zombies gain +1/0.",
+      "source": {
+        "tab": "Zombie",
+        "row": 10
+      }
+    },
+    {
+      "id": "isolated-sentinel",
+      "name": "Isolated Sentinel",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "Whenever a Zombie is destroyed, this creature gains +1/1.",
+      "source": {
+        "tab": "Zombie",
+        "row": 11
+      }
+    },
+    {
+      "id": "krr-ask-virulent-contagion",
+      "name": "Krr'ask, Virulent Contagion",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 4,
+      "keywordRefs": [
+        "INFECT"
+      ],
+      "text": "Tap: INFECT target tapped creature.",
+      "source": {
+        "tab": "Zombie",
+        "row": 12
+      }
+    },
+    {
+      "id": "dreaded-lineage",
+      "name": "Dreaded Lineage",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "When a Zombie in your field is destroyed; create a tapped 1/1 Zombie Token.",
+      "source": {
+        "tab": "Zombie",
+        "row": 13
+      }
+    },
+    {
+      "id": "corrupted-artificer",
+      "name": "Corrupted Artificer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 3,
+      "defense": 4,
+      "keywordRefs": [],
+      "text": "The first 2 times a Zombie enters your field during a turn; create 1 Corrupted Mana.",
+      "source": {
+        "tab": "Zombie",
+        "row": 14
+      }
+    },
+    {
+      "id": "deathly-reconjurer",
+      "name": "Deathly Reconjurer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Zombie",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "When this creature attacks, you may return a Zombie from your discard pile to your field. After this attack, that Zombie attacks the same player.",
+      "source": {
+        "tab": "Zombie",
+        "row": 15
+      }
+    },
+    {
+      "id": "baby-goblin",
+      "name": "Baby Goblin",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "CRITICAL BOOST"
+      ],
+      "text": "CRITICAL BOOST and draw a card when Boosting.",
+      "source": {
+        "tab": "Goblin",
+        "row": 2
+      }
+    },
+    {
+      "id": "goblin-artillery",
+      "name": "Goblin Artillery",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "For each \"Goblin\" you control that was boosted this turn - Gain +2/0 for the rest of the turn.",
+      "source": {
+        "tab": "Goblin",
+        "row": 3
+      }
+    },
+    {
+      "id": "goblin-assassin",
+      "name": "Goblin Assassin",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "When CLASHING, inflict double damage",
+      "source": {
+        "tab": "Goblin",
+        "row": 4
+      }
+    },
+    {
+      "id": "goblin-berserker",
+      "name": "Goblin berserker",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 3,
+      "defense": 2,
+      "keywordRefs": [
+        "CRITICAL BOOST",
+        "DOUBLE STRIKE",
+        "CLASH"
+      ],
+      "text": "When BOOSTED by \"Goblin\" creatures, gain DOUBLE STRIKE until the end of Battle. Whenever this creature destroys another creature via CLASH; create a 1/1 Goblin Token with CRITICAL BOOST.",
+      "source": {
+        "tab": "Goblin",
+        "row": 5
+      }
+    },
+    {
+      "id": "goblin-elder",
+      "name": "Goblin Elder",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "ETB - Draw a card for each \"Goblin\" you control.",
+      "source": {
+        "tab": "Goblin",
+        "row": 6
+      }
+    },
+    {
+      "id": "goblin-flanker",
+      "name": "Goblin Flanker",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "HASTE"
+      ],
+      "text": "HASTE - If you control at least 3 \"Goblin\" creatures, you can play this card by paying 2.",
+      "source": {
+        "tab": "Goblin",
+        "row": 7
+      }
+    },
+    {
+      "id": "goblin-marksman",
+      "name": "Goblin Marksman",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 3,
+      "defense": 2,
+      "keywordRefs": [
+        "CRITICAL"
+      ],
+      "text": "CRITICAL",
+      "source": {
+        "tab": "Goblin",
+        "row": 8
+      }
+    },
+    {
+      "id": "goblin-messenger",
+      "name": "Goblin Messenger",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "ON PLAY - Search on your deck for a \"Goblin\" cost {3} or less, reveal it and add it to your hand.",
+      "source": {
+        "tab": "Goblin",
+        "row": 9
+      }
+    },
+    {
+      "id": "goblin-miner",
+      "name": "Goblin Miner",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "End Phase - If at least 1 of your \"Goblin\" creatures successfully inflicted damage to an opponent; create a 1/1 Goblin Token.",
+      "source": {
+        "tab": "Goblin",
+        "row": 10
+      }
+    },
+    {
+      "id": "goblin-planner",
+      "name": "Goblin Planner",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "Whenever you tap a \"Goblin\" to Attack, add 1 mana to your mana pool until the end of the turn.",
+      "source": {
+        "tab": "Goblin",
+        "row": 11
+      }
+    },
+    {
+      "id": "goblin-recruit",
+      "name": "Goblin Recruit",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "HASTE"
+      ],
+      "text": "HASTE",
+      "source": {
+        "tab": "Goblin",
+        "row": 12
+      }
+    },
+    {
+      "id": "goblin-recruiter",
+      "name": "Goblin Recruiter",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 0,
+      "defense": 2,
+      "keywordRefs": [
+        "CRITICAL BOOST"
+      ],
+      "text": "TAP; Create a 1/1 Goblin Token with CRITICAL BOOST.",
+      "source": {
+        "tab": "Goblin",
+        "row": 13
+      }
+    },
+    {
+      "id": "goblin-rusher",
+      "name": "Goblin Rusher",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [
+        "HASTE"
+      ],
+      "text": "HASTE",
+      "source": {
+        "tab": "Goblin",
+        "row": 14
+      }
+    },
+    {
+      "id": "goblin-scout",
+      "name": "Goblin Scout",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "On Play - Draw a card. When destroyed, draw 1 card.",
+      "source": {
+        "tab": "Goblin",
+        "row": 15
+      }
+    },
+    {
+      "id": "goblin-shaman",
+      "name": "Goblin Shaman",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 0,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "WHILE ON FIELD - all your other \"Goblin\" gain +1/1.",
+      "source": {
+        "tab": "Goblin",
+        "row": 16
+      }
+    },
+    {
+      "id": "goblin-wizard",
+      "name": "Goblin Wizard",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Your BOOSTING \"Goblins\" provide an extra point in attack.",
+      "source": {
+        "tab": "Goblin",
+        "row": 18
+      }
+    },
+    {
+      "id": "groot-goblin-mercenary",
+      "name": "Groot, Goblin Mercenary",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 3,
+      "keywordRefs": [
+        "VIGILANCE",
+        "EVASIVE"
+      ],
+      "text": "EVASIVE, VIGILANCE - ON ATTACK - Destroy another creature you control and if it was a \"Goblin\"; gain a +0/1 counter.",
+      "source": {
+        "tab": "Goblin",
+        "row": 19
+      }
+    },
+    {
+      "id": "urgal-the-whisperer",
+      "name": "Urgal the Whisperer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 0,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "END PHASE - for each \"Goblin\" you control that BOOSTED this turn; Select 1 \"Goblin\", it gains a +1/1 counter (3 counters max).",
+      "source": {
+        "tab": "Goblin",
+        "row": 20
+      }
+    },
+    {
+      "id": "goblin-whelpcaller",
+      "name": "Goblin Whelpcaller",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "ON PLAY - Create 2 1/1 Goblin Tokens.",
+      "source": {
+        "tab": "Goblin",
+        "row": 21
+      }
+    },
+    {
+      "id": "grukza-the-goblin-mother",
+      "name": "Grukza, the Goblin Mother",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "ON CREATE GOBLIN TOKEN - Create 1 more.",
+      "source": {
+        "tab": "Goblin",
+        "row": 22
+      }
+    },
+    {
+      "id": "goblin-1",
+      "name": "Goblin #1",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Goblin",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [
+        "HASTE"
+      ],
+      "text": "HASTE ; Whenever a creature is tapped to boost during the turn this creature entered, gain a +1/1 counter",
+      "source": {
+        "tab": "Goblin",
+        "row": 23
+      }
+    },
+    {
+      "id": "vampire-merchant",
+      "name": "Vampire Merchant",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "DMG GAIN"
+      ],
+      "text": "TAP; Target \"Vampire\" gains DMG GAIN until the end of the turn.",
+      "source": {
+        "tab": "Vampire",
+        "row": 2
+      }
+    },
+    {
+      "id": "marissa-vampire-bride",
+      "name": "Marissa, Vampire Bride",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [
+        "DMG GAIN"
+      ],
+      "text": "DMG GAIN",
+      "source": {
+        "tab": "Vampire",
+        "row": 3
+      }
+    },
+    {
+      "id": "arsen-vampire-familiar",
+      "name": "Arsen, Vampire Familiar",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "FACEOFF"
+      ],
+      "text": "Once during your turn, you may equip this to another Vampire you control. Equipped Vampire gains +1/1 and FACEOFF. While equipped, this is an Artifact, not a Creature.",
+      "source": {
+        "tab": "Vampire",
+        "row": 4
+      }
+    },
+    {
+      "id": "vampire-butler",
+      "name": "Vampire Butler",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Whenever another Vampire you control gets a counter, this gets a +1/1 counter.",
+      "source": {
+        "tab": "Vampire",
+        "row": 5
+      }
+    },
+    {
+      "id": "vampire-duke",
+      "name": "Vampire Duke",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 4,
+      "keywordRefs": [
+        "DMG GAIN"
+      ],
+      "text": "DMG GAIN",
+      "source": {
+        "tab": "Vampire",
+        "row": 6
+      }
+    },
+    {
+      "id": "vampire-infiltrator",
+      "name": "Vampire Infiltrator",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 4,
+      "keywordRefs": [
+        "FACEOFF"
+      ],
+      "text": "FACEOFF",
+      "source": {
+        "tab": "Vampire",
+        "row": 7
+      }
+    },
+    {
+      "id": "xavier-vampire-groom",
+      "name": "Xavier, Vampire Groom",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 0,
+      "defense": 2,
+      "keywordRefs": [
+        "CLASH"
+      ],
+      "text": "ON \"Vampire\" CLASH - CLASHING \"Vampire\" gains a +0/1 counter",
+      "source": {
+        "tab": "Vampire",
+        "row": 8
+      }
+    },
+    {
+      "id": "vampire-glutton",
+      "name": "Vampire Glutton",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 4,
+      "keywordRefs": [],
+      "text": "Inherits all the Keywords of Vampires you control.",
+      "source": {
+        "tab": "Vampire",
+        "row": 9
+      }
+    },
+    {
+      "id": "inspired-vampire",
+      "name": "Inspired Vampire",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 1,
+      "defense": 5,
+      "keywordRefs": [
+        "CLASH"
+      ],
+      "text": "If this creature survives CLASH ; create a 1/1 vampire token with the same effect as the creature this card battled.",
+      "source": {
+        "tab": "Vampire",
+        "row": 10
+      }
+    },
+    {
+      "id": "atredes-vampire-overlord",
+      "name": "Atredes, Vampire Overlord",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 6,
+      "attack": 3,
+      "defense": 5,
+      "keywordRefs": [
+        "DMG GAIN",
+        "FACEOFF"
+      ],
+      "text": "DMG GAIN, FACEOFF. At the end of your turn, if your attacking Vampires this turn had 9+ total attack (boosts included), create a 0/3 Vampire Token with DMG GAIN.",
+      "source": {
+        "tab": "Vampire",
+        "row": 11
+      }
+    },
+    {
+      "id": "herald-food-critic",
+      "name": "Herald, Food Critic",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 2,
+      "defense": 4,
+      "keywordRefs": [],
+      "text": "When this creature is blocked, if you have less than 5 life, gain 1 life.",
+      "source": {
+        "tab": "Vampire",
+        "row": 12
+      }
+    },
+    {
+      "id": "lurking-vampire",
+      "name": "Lurking Vampire",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "",
+      "source": {
+        "tab": "Vampire",
+        "row": 13
+      }
+    },
+    {
+      "id": "vampire-shapeshifter",
+      "name": "Vampire Shapeshifter",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "ON Vampire entering your field, inherit its keywords.",
+      "source": {
+        "tab": "Vampire",
+        "row": 14
+      }
+    },
+    {
+      "id": "alucard-prince-of-the-night",
+      "name": "Alucard, Prince of the Night",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 4,
+      "defense": 4,
+      "keywordRefs": [
+        "FACEOFF"
+      ],
+      "text": "FACEOFF. Whenever this creature destroys a creature in combat, target Vampire gains +1/1.",
+      "source": {
+        "tab": "Vampire",
+        "row": 15
+      }
+    },
+    {
+      "id": "isolde-bloodborne-mistress",
+      "name": "Isolde, Bloodborne Mistress",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 6,
+      "defense": 5,
+      "keywordRefs": [],
+      "text": "When this creature clashes with a creature, create a token copy of that creature. The copy is a Vampire.",
+      "source": {
+        "tab": "Vampire",
+        "row": 16
+      }
+    },
+    {
+      "id": "vampire-feeder",
+      "name": "Vampire Feeder",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Your Vampires gain +0/1.",
+      "source": {
+        "tab": "Vampire",
+        "row": 17
+      }
+    },
+    {
+      "id": "vampire-nurse",
+      "name": "Vampire Nurse",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Vampire",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 0,
+      "defense": 3,
+      "keywordRefs": [
+        "FACEOFF",
+        "CLASH"
+      ],
+      "text": "FACEOFF - When this creature survives a CLASH; add 1 mana to your mana pool until the end of the turn.",
+      "source": {
+        "tab": "Vampire",
+        "row": 18
+      }
+    },
+    {
+      "id": "meditating-monk",
+      "name": "Meditating Monk",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Tap; Add 1 mana to your mana pool until the end of the turn.",
+      "source": {
+        "tab": "Human",
+        "row": 2
+      }
+    },
+    {
+      "id": "mischievous-child",
+      "name": "Mischievous Child",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Tap; Draw 1 card.",
+      "source": {
+        "tab": "Human",
+        "row": 3
+      }
+    },
+    {
+      "id": "mad-scientist",
+      "name": "Mad Scientist",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "On Play - look at the top 5 cards of your deck, you may add an artifact to your hand. Shuffle.",
+      "source": {
+        "tab": "Human",
+        "row": 4
+      }
+    },
+    {
+      "id": "artificer-s-boonbearer",
+      "name": "Artificer's Boonbearer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "On Play - Add 1 mana to your mana pool until the end of the turn for each Artifact in your field.",
+      "source": {
+        "tab": "Human",
+        "row": 5
+      }
+    },
+    {
+      "id": "alloy-adept",
+      "name": "Alloy Adept",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "On Play - You may play an Artifact cost 3 or less from your hand.",
+      "source": {
+        "tab": "Human",
+        "row": 6
+      }
+    },
+    {
+      "id": "resting-adventurer",
+      "name": "Resting Adventurer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "Tap; Untap target creature in your field.",
+      "source": {
+        "tab": "Human",
+        "row": 7
+      }
+    },
+    {
+      "id": "castiel-war-general",
+      "name": "Castiel, War General",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 3,
+      "defense": 2,
+      "keywordRefs": [
+        "DOUBLE STRIKE"
+      ],
+      "text": "If a creature is tapped for its effect during your turn, gain DOUBLE STRIKE until the end of the turn.",
+      "source": {
+        "tab": "Human",
+        "row": 8
+      }
+    },
+    {
+      "id": "tavern-hostess",
+      "name": "Tavern Hostess",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "On Play - Untap all creatures you control",
+      "source": {
+        "tab": "Human",
+        "row": 11
+      }
+    },
+    {
+      "id": "marcel-sky-captain",
+      "name": "Marcel, Sky Captain",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "DOUBLE STRIKE"
+      ],
+      "text": "At the start of your turn, if you're not the player with the most health, draw 1 card (If tied, you don't draw). - If you have 12 or more cards in your hand, this card gains DOUBLE STRIKE",
+      "source": {
+        "tab": "Human",
+        "row": 12
+      }
+    },
+    {
+      "id": "human-artificer",
+      "name": "Human Artificer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 6,
+      "attack": 2,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "On Play - add 1 mana to your mana pool until the end of your turn for each artifact in the board.",
+      "source": {
+        "tab": "Human",
+        "row": 13
+      }
+    },
+    {
+      "id": "dual-channeler",
+      "name": "Dual Channeler",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Tap; Draw 1 card - Tap; Add 1 mana to your mana pool until the end of the turn.",
+      "source": {
+        "tab": "Human",
+        "row": 14
+      }
+    },
+    {
+      "id": "human-shield",
+      "name": "Human Shield",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 0,
+      "defense": 5,
+      "keywordRefs": [],
+      "text": "ON UPKEEP - Create a copy of this creature.",
+      "source": {
+        "tab": "Human",
+        "row": 15
+      }
+    },
+    {
+      "id": "scorchcoil-artificer",
+      "name": "Scorchcoil Artificer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 1,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "ON CONSTRUCT YOU CONTROL TAPPING - Deal 1 damage to any Creature. You can't select the same target more than 3 times per turn.",
+      "source": {
+        "tab": "Human",
+        "row": 16
+      }
+    },
+    {
+      "id": "human-1",
+      "name": "Human #1",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Human",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "Tap; Return target creature you control to the top of your deck",
+      "source": {
+        "tab": "Human",
+        "row": 17
+      }
+    },
+    {
+      "id": "druids-1",
+      "name": "Druids #1",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "On ManaCharge may pay X to create a copy of the card charged. X is the card's cost.",
+      "source": {
+        "tab": "Druids",
+        "row": 2
+      }
+    },
+    {
+      "id": "druids-2",
+      "name": "Druids #2",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 0,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "On ManaCharge gain a +1/1 counter.",
+      "source": {
+        "tab": "Druids",
+        "row": 3
+      }
+    },
+    {
+      "id": "druids-3",
+      "name": "Druids #3",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "Once per turn, you may swap 1 of your Mana Orbs with 1 card in your hand (the new Orb is filled).",
+      "source": {
+        "tab": "Druids",
+        "row": 4
+      }
+    },
+    {
+      "id": "mana-sage",
+      "name": "Mana Sage",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "ON CHARGE THIS CARD - Reveal this card and draw 1 card.",
+      "source": {
+        "tab": "Druids",
+        "row": 5
+      }
+    },
+    {
+      "id": "cloudwhisper",
+      "name": "Cloudwhisper",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "You may charge an extra card per turn from your hand.",
+      "source": {
+        "tab": "Druids",
+        "row": 7
+      }
+    },
+    {
+      "id": "el-crow-druid",
+      "name": "El Crow Druid",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 4,
+      "defense": 4,
+      "keywordRefs": [],
+      "text": "PAY 2 - Untap this card. Destroy 1 mana ; Gain +2/2.",
+      "source": {
+        "tab": "Druids",
+        "row": 11
+      }
+    },
+    {
+      "id": "druids-4",
+      "name": "Druids #4",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "TAP - Add X mana to your Mana Pool equal to the amount of Mana Cards in your Mana Pool.",
+      "source": {
+        "tab": "Druids",
+        "row": 12
+      }
+    },
+    {
+      "id": "druids-5",
+      "name": "Druids #5",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Druid",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "TAP - Fill 1 mana from your ManaPool.",
+      "source": {
+        "tab": "Druids",
+        "row": 13
+      }
+    },
+    {
+      "id": "steelshaper-vanguard",
+      "name": "Steelshaper Vanguard",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "INDESTRUCTIBLE",
+        "DOUBLE STRIKE",
+        "RECONFIGURE",
+        "CRITICAL",
+        "DMG GAIN",
+        "FACEOFF"
+      ],
+      "text": "ON ATTACK - TAP 2 Artifacts you control; Choose between CRITICAL, DOUBLE STRIKE, FACEOFF, DMG GAIN, RECONFIGURE, and INDESTRUCTIBLE and gain it until the end of the turn ; You may activate this effect once per KEYWORD",
+      "source": {
+        "tab": "Construct",
+        "row": 2
+      }
+    },
+    {
+      "id": "recalibrator-sentinel",
+      "name": "Recalibrator Sentinel",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 3,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "Your Artifacts gain RECONFIGURE.",
+      "source": {
+        "tab": "Construct",
+        "row": 3
+      }
+    },
+    {
+      "id": "clockwork-servitor",
+      "name": "Clockwork Servitor",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "TAP - Untap another target Artifact you control.",
+      "source": {
+        "tab": "Construct",
+        "row": 4
+      }
+    },
+    {
+      "id": "tharix-gearwork-animator",
+      "name": "Tharix, Gearwork Animator",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "Constructs you control gain a +1/1 counter whenever they become tapped.",
+      "source": {
+        "tab": "Construct",
+        "row": 5
+      }
+    },
+    {
+      "id": "crystalforge-automaton",
+      "name": "Crystalforge Automaton",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "RECONFIGURE. Tap: create 1 Mana Rock.",
+      "source": {
+        "tab": "Construct",
+        "row": 6
+      }
+    },
+    {
+      "id": "augmenter-drone",
+      "name": "Augmenter Drone",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "ON TAP - Add a +1/1 counter to target Creature you control.",
+      "source": {
+        "tab": "Construct",
+        "row": 7
+      }
+    },
+    {
+      "id": "fabrication-sentinel",
+      "name": "Fabrication Sentinel",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "ETB - Create a 1/1 Construct token with RECONFIGURE.",
+      "source": {
+        "tab": "Construct",
+        "row": 8
+      }
+    },
+    {
+      "id": "insight-automaton",
+      "name": "Insight Automaton",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "ON YOUR TURN - You may draw 1 card ON Artifact ETB.",
+      "source": {
+        "tab": "Construct",
+        "row": 9
+      }
+    },
+    {
+      "id": "combat-mk-ii",
+      "name": "Combat Mk II",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [
+        "CRITICAL",
+        "DOUBLE STRIKE"
+      ],
+      "text": "CRITICAL. Whenever this creature untaps outside your Untap step, it gains DOUBLE STRIKE until the end of the turn.",
+      "source": {
+        "tab": "Construct",
+        "row": 10
+      }
+    },
+    {
+      "id": "clockwork-titan",
+      "name": "Clockwork Titan",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 4,
+      "attack": "*",
+      "defense": "*",
+      "keywordRefs": [],
+      "text": "This creature's power and toughness are equal to the number of Artifacts you control.",
+      "source": {
+        "tab": "Construct",
+        "row": 12
+      },
+      "statsNote": "Attack and defense equal the number of Artifacts you control."
+    },
+    {
+      "id": "support-mk-ii",
+      "name": "Support MK II",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Construct",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "Pay 1 and Tap an artifact you control - Draw 1 card",
+      "source": {
+        "tab": "Construct",
+        "row": 13
+      }
+    },
+    {
+      "id": "beelzebub-lord-of-the-flies",
+      "name": "Beelzebub, Lord of the Flies",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 3,
+      "defense": 2,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "ETB - OFFER: draw 1 card and create 1 Mana Rock. Then you may draw 1 card and create 1 Mana Rock per contract.",
+      "source": {
+        "tab": "Demon",
+        "row": 2
+      }
+    },
+    {
+      "id": "chained-demon",
+      "name": "Chained Demon",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 4,
+      "defense": 3,
+      "keywordRefs": [],
+      "text": "When this creature is attacking and you have at least 10 Souls, destroy target creature.",
+      "source": {
+        "tab": "Demon",
+        "row": 3
+      }
+    },
+    {
+      "id": "charitable-demon",
+      "name": "Charitable Demon",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 3,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "If blocked, defending opponent doesn't untap 1 mana card during their untap phase. If not blocked, defending opponent draws 1 card.",
+      "source": {
+        "tab": "Demon",
+        "row": 4
+      }
+    },
+    {
+      "id": "demon-bard",
+      "name": "Demon Bard",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "COMMAND"
+      ],
+      "text": "The first time a Demon enters your field during a turn; COMMAND target player to draw a card.",
+      "source": {
+        "tab": "Demon",
+        "row": 5
+      }
+    },
+    {
+      "id": "demon-charger",
+      "name": "Demon Charger",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "5 SOULS - this creature gets a +1/1 counter - 10 SOULS - Create 1 Mana Rock Each effect is only triggered once.",
+      "source": {
+        "tab": "Demon",
+        "row": 6
+      }
+    },
+    {
+      "id": "demon-leecher",
+      "name": "Demon Leecher",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "Whenever you OFFER, you may draw 1 card.",
+      "source": {
+        "tab": "Demon",
+        "row": 7
+      }
+    },
+    {
+      "id": "demon-pup",
+      "name": "Demon Pup",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "Whenever you OFFER, this gets a +1/1 counter.",
+      "source": {
+        "tab": "Demon",
+        "row": 8
+      }
+    },
+    {
+      "id": "demon-shade",
+      "name": "Demon Shade",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "ETB - OFFER: draw 1 card. Then draw 1 card per contract.",
+      "source": {
+        "tab": "Demon",
+        "row": 9
+      }
+    },
+    {
+      "id": "demon-spawn",
+      "name": "Demon Spawn",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "",
+      "source": {
+        "tab": "Demon",
+        "row": 10
+      }
+    },
+    {
+      "id": "demon-summoner",
+      "name": "Demon Summoner",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 4,
+      "keywordRefs": [
+        "COMMAND",
+        "OFFER"
+      ],
+      "text": "If you have at least 10 Souls, whenever an OFFER or COMMAND effect activates; create a 2/2 Demon Token.",
+      "source": {
+        "tab": "Demon",
+        "row": 11
+      }
+    },
+    {
+      "id": "evil-spirit",
+      "name": "Evil Spirit",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "OFFER"
+      ],
+      "text": "ETB - Search your deck for a Spell or Incantation with OFFER, reveal it and add it to your hand. Shuffle.",
+      "source": {
+        "tab": "Demon",
+        "row": 12
+      }
+    },
+    {
+      "id": "lilith-queen-of-demons",
+      "name": "Lilith, Queen of Demons",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 4,
+      "defense": 4,
+      "keywordRefs": [
+        "COMMAND",
+        "OFFER"
+      ],
+      "text": "ETB - COMMAND target player to give you selected creature. Untap it. ON OFFER OR COMMAND - You may draw 1 card.",
+      "source": {
+        "tab": "Demon",
+        "row": 13
+      }
+    },
+    {
+      "id": "paimon-great-king-of-hell",
+      "name": "Paimon, Great King of Hell",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 4,
+      "defense": 5,
+      "keywordRefs": [
+        "COMMAND",
+        "OFFER"
+      ],
+      "text": "ETB - OFFER: create 1 Mana Rock. Add 2 mana until the end of the turn per contract. COMMAND each player who refuses to destroy 1 Anthem and 1 Artifact they control.",
+      "source": {
+        "tab": "Demon",
+        "row": 14
+      }
+    },
+    {
+      "id": "soul-collector",
+      "name": "Soul Collector",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [
+        "COMMAND"
+      ],
+      "text": "ON COMMAND - Gain a Soul.",
+      "source": {
+        "tab": "Demon",
+        "row": 15
+      }
+    },
+    {
+      "id": "demon-1",
+      "name": "Demon #1",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Demon",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "COMMAND"
+      ],
+      "text": "Whenever a Demon you control damages an opponent, COMMAND that player to create 1 Mana Rock.",
+      "source": {
+        "tab": "Demon",
+        "row": 16
+      }
+    },
+    {
+      "id": "malakir-devourer-of-kings",
+      "name": "Malakir, Devourer of Kings",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Dragon",
+      "speed": "spell",
+      "cost": 6,
+      "attack": 6,
+      "defense": 6,
+      "keywordRefs": [
+        "DEVOUR",
+        "BOND"
+      ],
+      "text": "BOND ; ETB - DEVOUR ; ON ATTACK - DEVOUR target creature",
+      "source": {
+        "tab": "Dragon",
+        "row": 2
+      }
+    },
+    {
+      "id": "dragon-1",
+      "name": "Dragon #1",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Dragon",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 4,
+      "defense": 4,
+      "keywordRefs": [
+        "DOUBLE STRIKE",
+        "BOND"
+      ],
+      "text": "BOND ; DOUBLESTRIKE",
+      "source": {
+        "tab": "Dragon",
+        "row": 3
+      }
+    },
+    {
+      "id": "dragon-2",
+      "name": "Dragon #2",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Dragon",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "DEVOUR",
+        "BOND"
+      ],
+      "text": "BOND ; ON BOND - DEVOUR",
+      "source": {
+        "tab": "Dragon",
+        "row": 4
+      }
+    },
+    {
+      "id": "dragon-3",
+      "name": "Dragon #3",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Dragon",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 3,
+      "keywordRefs": [
+        "BOND"
+      ],
+      "text": "BOND ; IF BOUND - friendly Dragons gain +1/1",
+      "source": {
+        "tab": "Dragon",
+        "row": 5
+      }
+    },
+    {
+      "id": "lysaria-windwhisper",
+      "name": "Lysaria Windwhisper",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "Dragon Rider",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [
+        "BOND"
+      ],
+      "text": "BOND ; ON ATTACK - DRAW 1 CARD",
+      "source": {
+        "tab": "Dragon Rider",
+        "row": 2
+      }
+    },
+    {
+      "id": "dragon-rider-1",
+      "name": "Dragon Rider #1",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Dragon Rider",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [
+        "BOND"
+      ],
+      "text": "BOND ; Whenever this unit survives combat, give all of your creatures a +1/1 Counter",
+      "source": {
+        "tab": "Dragon Rider",
+        "row": 3
+      }
+    },
+    {
+      "id": "dragon-rider-2",
+      "name": "Dragon Rider #2",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Dragon Rider",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [
+        "BOND"
+      ],
+      "text": "BOND ; At the start of your MAIN PHASE, add X mana to your Mana Pool until the end phase, where X is the number of BOND SETS",
+      "source": {
+        "tab": "Dragon Rider",
+        "row": 4
+      }
+    },
+    {
+      "id": "dragon-rider-3",
+      "name": "Dragon Rider #3",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Dragon Rider",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 4,
+      "defense": 2,
+      "keywordRefs": [
+        "BOND"
+      ],
+      "text": "BOND ;",
+      "source": {
+        "tab": "Dragon Rider",
+        "row": 5
+      }
+    },
+    {
+      "id": "dragon-rider-4",
+      "name": "Dragon Rider #4",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Dragon Rider",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "DOUBLE STRIKE",
+        "BOND"
+      ],
+      "text": "BOND ; DOUBLESTRIKE",
+      "source": {
+        "tab": "Dragon Rider",
+        "row": 6
+      }
+    },
+    {
+      "id": "hermes-the-messenger",
+      "name": "Hermes, the Messenger",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 3,
+      "defense": 1,
+      "keywordRefs": [
+        "INDESTRUCTIBLE",
+        "HASTE"
+      ],
+      "text": "HASTE INDESTRUCTIBLE",
+      "source": {
+        "tab": "God",
+        "row": 2
+      }
+    },
+    {
+      "id": "thor-god-of-thunder",
+      "name": "Thor, God of Thunder",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 7,
+      "attack": 6,
+      "defense": 6,
+      "keywordRefs": [
+        "INDESTRUCTIBLE",
+        "DOUBLE STRIKE"
+      ],
+      "text": "DOUBLESTRIKE INDESTRUCTIBLE",
+      "source": {
+        "tab": "God",
+        "row": 3
+      }
+    },
+    {
+      "id": "heracles-disciple-of-12-labours",
+      "name": "Heracles, Disciple of 12 Labours",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "INDESTRUCTIBLE",
+        "VIGILANCE"
+      ],
+      "text": "Whenever you control 3 other Gods; Permanently gain INDESTRUCTIBLE and VIGILANCE",
+      "source": {
+        "tab": "God",
+        "row": 4
+      }
+    },
+    {
+      "id": "zeus-king-of-gods",
+      "name": "Zeus, King of Gods",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 6,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "INDESTRUCTIBLE"
+      ],
+      "text": "INDESTRUCTIBLE - ON ETB - Create a 2/2 INDESTRUCTIBLE God Token for each God in your field except this one.",
+      "source": {
+        "tab": "God",
+        "row": 5
+      }
+    },
+    {
+      "id": "charon-ferryman-of-hades",
+      "name": "Charon, Ferryman of Hades",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 6,
+      "attack": 5,
+      "defense": 5,
+      "keywordRefs": [
+        "INDESTRUCTIBLE",
+        "OFFER"
+      ],
+      "text": "INDESTRUCTIBLE TAP; Change the control of one creature on the field. Unless you pay 1 Soul; OFFER to return the creature. Add 2 mana to your mana pool until the end of the turn for the contract.",
+      "source": {
+        "tab": "God",
+        "row": 6
+      }
+    },
+    {
+      "id": "buddha-calm-contemplator",
+      "name": "Buddha, Calm Contemplator",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 4,
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "INDESTRUCTIBLE"
+      ],
+      "text": "At the beginning of your Untap Phase; all untapped creatures gain +1/1. If this creature gets to at least 3 Defense; gain INDESTRUCTIBLE",
+      "source": {
+        "tab": "God",
+        "row": 7
+      }
+    },
+    {
+      "id": "god-1",
+      "name": "God #1",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Demigod",
+      "speed": "spell",
+      "cost": 2,
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [
+        "INDESTRUCTIBLE",
+        "DEMIGOD"
+      ],
+      "text": "DEMIGOD 2 - When Ascended; gain INDESTRUCTIBLE",
+      "source": {
+        "tab": "God",
+        "row": 8
+      },
+      "demigodCount": 2
+    },
+    {
+      "id": "loki-shape-changer",
+      "name": "Loki, Shape-Changer",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "incantation",
+      "cost": 4,
+      "attack": 3,
+      "defense": 2,
+      "keywordRefs": [
+        "SHAPESHIFTER",
+        "FLASH"
+      ],
+      "text": "FLASH - On Play; create a Copy of target creature being played. SHAPESHIFTER",
+      "source": {
+        "tab": "God",
+        "row": 9
+      }
+    },
+    {
+      "id": "athenea-goddess-of-strategy",
+      "name": "Athenea, Goddess of Strategy",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 5,
+      "attack": 3,
+      "defense": 3,
+      "keywordRefs": [
+        "INDESTRUCTIBLE",
+        "GUIDE"
+      ],
+      "text": "INDESTRUCTIBLE Whenever you cast a card that costs 5 or more; GUIDE 3 and draw 1 card. All your \"God\" creatures cost 2 less.",
+      "source": {
+        "tab": "God",
+        "row": 10
+      }
+    },
+    {
+      "id": "god-2",
+      "name": "God #2",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Demigod",
+      "speed": "spell",
+      "cost": 1,
+      "attack": 2,
+      "defense": 1,
+      "keywordRefs": [
+        "DEMIGOD"
+      ],
+      "text": "DEMIGOD 3 - When Ascended; Gain +1/2",
+      "source": {
+        "tab": "God",
+        "row": 11
+      },
+      "demigodCount": 3
+    },
+    {
+      "id": "god-3",
+      "name": "God #3",
+      "nameIsPlaceholder": true,
+      "type": "Creature",
+      "tribe": "Demigod",
+      "speed": "spell",
+      "cost": 3,
+      "attack": 2,
+      "defense": 3,
+      "keywordRefs": [
+        "VIGILANCE",
+        "DEMIGOD"
+      ],
+      "text": "DEMIGOD 1 - When Ascended; gain VIGILANCE. When blocking; draw 1 card.",
+      "source": {
+        "tab": "God",
+        "row": 13
+      },
+      "demigodCount": 1
+    },
+    {
+      "id": "ares-god-of-war",
+      "name": "Ares, God of War",
+      "nameIsPlaceholder": false,
+      "type": "Creature",
+      "tribe": "God",
+      "speed": "spell",
+      "cost": 6,
+      "attack": 5,
+      "defense": 5,
+      "keywordRefs": [
+        "INDESTRUCTIBLE"
+      ],
+      "text": "INDESTRUCTIBLE - At the start of your Untap Phase, destroy all creatures with 2 or less Attack",
+      "source": {
+        "tab": "God",
+        "row": 15
+      }
+    }
+  ],
+  "fields": [
+    {
+      "id": "forest",
+      "name": "Forest",
+      "nameIsPlaceholder": false,
+      "type": "Field",
+      "tribe": "Goblin",
+      "keywordRefs": [
+        "DOUBLE STRIKE",
+        "CRITICAL"
+      ],
+      "text": "The first time you attack during your turn, draw 1 card. The third time you attack during your turn, attacking creature gains CRITICAL, if it already has CRITICAL, it gains DOUBLESTRIKE",
+      "source": {
+        "tab": "Goblin",
+        "cell": "H3"
+      }
+    },
+    {
+      "id": "city-night",
+      "name": "City Night",
+      "nameIsPlaceholder": false,
+      "type": "Field",
+      "tribe": "Vampire",
+      "keywordRefs": [
+        "EVASIVE"
+      ],
+      "text": "Your creatures with at least +4 attack above their printed attack gain EVASIVE.",
+      "source": {
+        "tab": "Vampire",
+        "cell": "H2"
+      }
+    },
+    {
+      "id": "neural-nexus",
+      "name": "Neural Nexus",
+      "nameIsPlaceholder": false,
+      "type": "Field",
+      "tribe": "Construct",
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "ON YOUR TURN - The first Artifact you play costs 1 less.\nON YOUR TURN - ON tap your 3rd Artifact; you may draw 1 card.\nON YOUR TURN - ON tap your 10th Artifact; you may create a Construct Token with RECONFIGURE.",
+      "source": {
+        "tab": "Construct",
+        "cell": "H1"
+      }
+    },
+    {
+      "id": "demon-field",
+      "name": "Demon Field",
+      "nameIsPlaceholder": true,
+      "type": "Field",
+      "tribe": "Demon",
+      "keywordRefs": [
+        "DOUBLE STRIKE"
+      ],
+      "text": "5 SOULS: Your Demons gain +1/1.\n10 SOULS: For each damage your creatures deal to an opponent, you may draw 1 card.\n15 SOULS: Your Demons gain DOUBLE STRIKE.\nPay 2 SOULS: Target creature gets a +1/1 counter.",
+      "source": {
+        "tab": "Demon",
+        "cell": "G2"
+      }
+    },
+    {
+      "id": "celestial-citadel",
+      "name": "Celestial Citadel",
+      "nameIsPlaceholder": false,
+      "type": "Field",
+      "tribe": "God",
+      "keywordRefs": [],
+      "text": "Whenever you play a card that costs 5 or higher; Create 1 Mana Rock.",
+      "source": {
+        "tab": "God",
+        "cell": "H2"
+      }
+    },
+    {
+      "id": "graveyard",
+      "name": "Graveyard",
+      "nameIsPlaceholder": false,
+      "type": "Field",
+      "tribe": "Zombie",
+      "cost": null,
+      "keywordRefs": [
+        "CORRUPTED MANA"
+      ],
+      "text": "1st creature of yours destroyed or sacrificed each turn: draw 1 card.\n2nd: add 1 mana until the end of the turn.\n3rd: until the End Phase, you may play 1 card from your discard pile. Corrupted Mana can help pay.",
+      "source": {
+        "tab": "Sheet20",
+        "cell": "E9"
+      }
+    }
+  ],
+  "tokens": [
+    {
+      "id": "goblin-token",
+      "name": "Goblin Token",
+      "type": "Token",
+      "tribe": "Goblin",
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "",
+      "source": {
+        "tab": "Goblin",
+        "row": 17
+      }
+    },
+    {
+      "id": "demon-token",
+      "name": "Demon Token",
+      "type": "Token",
+      "tribe": "Demon",
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [],
+      "text": "",
+      "source": {
+        "tab": "Demon",
+        "row": 20
+      }
+    },
+    {
+      "id": "zombie-token",
+      "name": "Zombie Token",
+      "type": "Token",
+      "tribe": "Zombie",
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "",
+      "source": "created by card effects"
+    },
+    {
+      "id": "construct-token",
+      "name": "Construct Token",
+      "type": "Token",
+      "tribe": "Construct",
+      "attack": 1,
+      "defense": 1,
+      "keywordRefs": [
+        "RECONFIGURE"
+      ],
+      "text": "RECONFIGURE",
+      "source": "created by card effects"
+    },
+    {
+      "id": "vampire-token",
+      "name": "Vampire Token",
+      "type": "Token",
+      "tribe": "Vampire",
+      "attack": 0,
+      "defense": 3,
+      "keywordRefs": [
+        "DMG GAIN"
+      ],
+      "text": "DMG GAIN",
+      "source": "created by card effects"
+    },
+    {
+      "id": "god-token",
+      "name": "God Token",
+      "type": "Token",
+      "tribe": "God",
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [
+        "INDESTRUCTIBLE"
+      ],
+      "text": "INDESTRUCTIBLE",
+      "source": "created by card effects"
+    },
+    {
+      "id": "dragon-token",
+      "name": "Dragon Token",
+      "type": "Token",
+      "tribe": "Dragon",
+      "attack": 4,
+      "defense": 4,
+      "keywordRefs": [],
+      "text": "",
+      "source": "created by card effects"
+    },
+    {
+      "id": "shapeshifter-token",
+      "name": "Shapeshifter Token",
+      "type": "Token",
+      "tribe": "Shapeshifter",
+      "attack": 2,
+      "defense": 2,
+      "keywordRefs": [
+        "SHAPESHIFTER"
+      ],
+      "text": "SHAPESHIFTER",
+      "source": "created by card effects"
+    },
+    {
+      "id": "illusion",
+      "name": "Illusion",
+      "type": "Token",
+      "tribe": "Illusion",
+      "attack": 3,
+      "defense": 1,
+      "keywordRefs": [],
+      "text": "",
+      "source": "created by card effects"
+    },
+    {
+      "id": "mana-rock",
+      "name": "Mana Rock",
+      "type": "Mana Token",
+      "text": "Counts as 1 mana. Stays in your mana pool until consumed.",
+      "keywordRefs": []
+    },
+    {
+      "id": "corrupted-mana-rock",
+      "name": "Corrupted Mana Rock",
+      "type": "Mana Token",
+      "text": "1 mana that can only pay for creatures played from your discard pile. Stays until spent.",
+      "keywordRefs": []
+    }
+  ],
+  "excluded": [
+    {
+      "tab": "Anthem",
+      "row": 24,
+      "name": "Rallying Cry",
+      "reason": "BREAKTHROUGH was removed from the game"
+    },
+    {
+      "tab": "Human",
+      "row": 9,
+      "name": "Resting Adventurer",
+      "reason": "Duplicate"
+    },
+    {
+      "tab": "Human",
+      "row": 10,
+      "name": "Castiel, War General",
+      "reason": "Duplicate"
+    },
+    {
+      "tab": "Druids",
+      "row": 6,
+      "name": "(unnamed)",
+      "text": "ON CHARGE THIS CARD - Reveal this card and choose 1 creature in your discard pile and put it on top of your deck.",
+      "reason": "Unfinished (no cost/stats)"
+    },
+    {
+      "tab": "Druids",
+      "row": 8,
+      "name": "(unnamed)",
+      "text": "On ManaCharge draw 1 card.",
+      "reason": "Unfinished (no cost/stats)"
+    },
+    {
+      "tab": "Druids",
+      "row": 9,
+      "name": "(unnamed)",
+      "text": "ON CHARGE THIS CARD - destroy 2 mana in your manapool and draw cards equal to your total mana",
+      "reason": "Unfinished (no cost/stats)"
+    },
+    {
+      "tab": "Druids",
+      "row": 10,
+      "name": "(unnamed)",
+      "text": "ON CHARGE THIS CARD - Fill 1 mana in your manapool.",
+      "reason": "Unfinished (no cost/stats)"
+    },
+    {
+      "tab": "Construct",
+      "row": 11,
+      "name": "Support MK I",
+      "text": "WHEN BOOSTING ; Untap creature being Boosted.",
+      "reason": "Unfinished (no cost/stats)"
+    },
+    {
+      "tab": "Dragon",
+      "row": 6,
+      "name": "(unnamed)",
+      "text": "BOND ; FLYING",
+      "reason": "FLYING (on hold)"
+    },
+    {
+      "tab": "God",
+      "row": 12,
+      "name": "Valkyrie",
+      "reason": "Relies on FLYING (on hold)"
+    },
+    {
+      "tab": "God",
+      "row": 14,
+      "name": "Achilles",
+      "text": "DEMIGOD",
+      "reason": "Unfinished (no cost/stats)"
+    }
+  ]
+}
