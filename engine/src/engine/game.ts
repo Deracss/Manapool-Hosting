@@ -9,7 +9,7 @@ import { evalCondition, targetOptions } from './effects.ts';
 import { payMana } from './mana.ts';
 import type { PayMode } from './mana.ts';
 import { addToStack, continueAfterChoice, continueAfterChoosePlayer, continueAfterConfirm, continueAfterGuide, continueAfterMode, openRound, passPriority } from './stack.ts';
-import { activatedOf, artifactsPayForArtifacts, chargesAllowed, costReductionFor, hasKeyword, isArtifact, isCreature } from './stats.ts';
+import { activatedOf, handAbilitiesOf, artifactsPayForArtifacts, chargesAllowed, costReductionFor, hasKeyword, isArtifact, isCreature } from './stats.ts';
 import { beginTurn } from './turns.ts';
 import { alive, defOf, fail, log, nameOf, newInstance, nextAlive, player, pname, shuffle } from './util.ts';
 import { chargeCard, checkState, destroy, drawCards, tapPerm, untapPerm } from './zones.ts';
@@ -301,8 +301,25 @@ function activateField(s: GameState, pid: PlayerId, card: string, index: number,
   addToStack(s, { id: s.nextId++, kind: 'ability', source: card, controller: pid, label: ab.label, effects: ab.effects, ctx }, pid);
 }
 
+/** An ability used from the hand: the card goes from your hand to your discard pile (the cost), then the effect uses the stack. */
+function activateFromHand(s: GameState, pid: PlayerId, card: Iid, index: number, pay?: PaySource[]): void {
+  const ab = handAbilitiesOf(s, card)[index];
+  if (!ab) fail(`${nameOf(s, card)} has no ability you can use from your hand.`);
+  const speed = ab.speed ?? 'incantation';
+  if (speed === 'spell' ? !isFreeMain(s, pid) : !canActAtIncantationSpeed(s, pid)) fail('You cannot use that right now.');
+  if (ab.condition && !evalCondition(s, ab.condition, { source: card, controller: pid, targets: [], vars: {} })) fail(`You can't use ${nameOf(s, card)} right now.`);
+  payMana(s, pid, Math.max(0, ab.cost.mana ?? 0), pay);
+  const p = player(s, pid);
+  p.hand = p.hand.filter((c) => c !== card);
+  p.discard.push(card);
+  log(s, `${pname(s, pid)} sends ${nameOf(s, card)} from their hand to the discard pile: ${ab.label}.`);
+  const ctx = { source: card, controller: pid, targets: [], vars: {} };
+  addToStack(s, { id: s.nextId++, kind: 'ability', source: card, controller: pid, label: ab.label, effects: ab.effects, ctx }, pid);
+}
+
 function activate(s: GameState, pid: PlayerId, card: Iid, index: number, pay?: PaySource[]): void {
   if (card.startsWith('field:')) return activateField(s, pid, card, index, pay);
+  if (player(s, pid).hand.includes(card)) return activateFromHand(s, pid, card, index, pay);
   const perm = s.perms[card];
   if (!perm || perm.controller !== pid) fail('Activate abilities of your own cards on the field.');
   const ab = activatedOf(s, card)[index];

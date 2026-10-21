@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { activatedOf, attackOf, defenseOf, hasKeyword, isCreature, whoMustAct } from '../src/index.ts';
 import type { GameState, Iid } from '../src/index.ts';
-import { act, advanceTo, attack, fieldNames, giveMana, handSize, life, put, settle, setup, toDeckTop, toHand } from './helpers.ts';
+import { act, advanceTo, attack, fieldNames, giveMana, handSize, id, life, put, settle, setup, toDeckTop, toHand } from './helpers.ts';
+import { newInstance } from '../src/engine/util.ts';
 
 const play = (s: GameState, pid: number, name: string, targets: string[] = [], mana = 10) => {
   const c = toHand(s, pid, name);
@@ -449,4 +450,25 @@ test('Concede: the player is out at once, even mid-combat, and the game goes on'
   assert.ok(s.players[1].eliminated);
   assert.ok(s.log.some((l) => l.includes('P1 is eliminated: conceded')));
   assert.notEqual(whoMustAct(s), null);
+});
+
+test('Cryptic Reclaimer is used from your hand: it goes to the discard pile and returns another Zombie', () => {
+  let s = setup();
+  const rec = toHand(s, 0, 'Cryptic Reclaimer');
+  const spawn = newInstance(s, id('Zombie Spawn'), 0);
+  s.players[0].discard.push(spawn.iid);
+  // Not a field ability any more.
+  const onField = put(s, 0, 'Cryptic Reclaimer');
+  assert.equal(activatedOf(s, onField).length, 0);
+  s = act(s, { type: 'activate', player: 0, card: rec, ability: 0 });
+  assert.ok(s.players[0].discard.includes(rec), 'sent from hand to the discard pile');
+  s = settle(s, { choose: () => spawn.iid });
+  assert.ok(s.players[0].hand.includes(spawn.iid), 'the Zombie came back');
+  assert.ok(!s.players[0].hand.includes(rec), "it can't return itself");
+});
+
+test("Cryptic Reclaimer can't be used without another Zombie in your discard pile", () => {
+  const s = setup();
+  const rec = toHand(s, 0, 'Cryptic Reclaimer');
+  assert.throws(() => act(s, { type: 'activate', player: 0, card: rec, ability: 0 }));
 });

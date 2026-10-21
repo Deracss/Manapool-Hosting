@@ -1873,7 +1873,7 @@
       "attack": 1,
       "defense": 1,
       "keywordRefs": [],
-      "text": "During your turn, you may send this card to your Discard Pile; add 1 Zombie from your Discard Pile to your hand.",
+      "text": "During your turn, you may send this card from your hand to your Discard Pile; add 1 Zombie from your Discard Pile to your hand.",
       "source": {
         "tab": "Zombie",
         "row": 4

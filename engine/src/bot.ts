@@ -3,7 +3,7 @@
 import { canAttack } from './engine/combat.ts';
 import { apply, whoMustAct } from './engine/game.ts';
 import { availableMana } from './engine/mana.ts';
-import { activatedOf, attackOf, chargesAllowed, defenseOf, isCreature } from './engine/stats.ts';
+import { activatedOf, attackOf, chargesAllowed, defenseOf, handAbilitiesOf, isCreature } from './engine/stats.ts';
 import { defOf } from './engine/util.ts';
 import { targetOptions } from './engine/effects.ts';
 import { hasKeyword } from './engine/stats.ts';
@@ -152,6 +152,16 @@ export function botAction(s: GameState): Action {
     const d2 = defOf(s, card);
     if (!d2.scripted || PERMANENT.has(d2.type) || (d2.script.targets?.length ?? 0) > 0 || d2.script.playCondition) continue;
     const a: Action = { type: 'play', player: pid, card };
+    if (legal(s, a)) return a;
+  }
+
+  // Abilities used from the hand (Cryptic Reclaimer): worth it when it brings back something better than itself.
+  for (const card of p.hand) {
+    const abs = handAbilitiesOf(s, card);
+    if (!abs.length) continue;
+    const best = Math.max(0, ...p.discard.filter((c) => isCreature(s, c) && defOf(s, c).tribe === 'Zombie').map((c) => defOf(s, c).cost ?? 0));
+    if (best <= (defOf(s, card).cost ?? 0)) continue;
+    const a: Action = { type: 'activate', player: pid, card, ability: 0 };
     if (legal(s, a)) return a;
   }
 

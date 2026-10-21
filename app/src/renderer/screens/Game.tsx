@@ -333,7 +333,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     if (!(freeMain || myPriority)) return set;
     for (const c of me.hand) {
       const o = handOptions(s, ME, c);
-      if (o.play.legal || o.charge.legal) set.add(c);
+      if (o.play.legal || o.charge.legal || o.abilities.some((a) => a.legal)) set.add(c);
     }
     return set;
   }, [s]);
@@ -1359,6 +1359,14 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                 Charge as a Mana Orb
               </button>
               {!popover.opts.charge.legal && popover.opts.charge.why && <span className="why">{youify(popover.opts.charge.why)}</span>}
+              {popover.opts.abilities.map((a) => (
+                <div key={a.index} style={{ display: 'contents' }}>
+                  <button type="button" disabled={!a.legal} onClick={() => step({ type: 'activate', player: ME, card: popover.iid, ability: a.index })}>
+                    {a.label}
+                  </button>
+                  {!a.legal && a.why && <span className="why">{youify(a.why)}</span>}
+                </div>
+              ))}
             </>
           ) : (
             <>

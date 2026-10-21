@@ -70,8 +70,13 @@ export function hasTribe(s: GameState, iid: Iid, tribe: string): boolean {
 }
 
 /** The card's own activated abilities plus any granted to it (Mana Harmonics). */
+/** Abilities used from your hand (the card goes to your discard pile as the cost). */
+export function handAbilitiesOf(s: GameState, iid: Iid): ActivatedAbility[] {
+  return (defOf(s, iid).script.activated ?? []).filter((a) => a.fromHand);
+}
+
 export function activatedOf(s: GameState, iid: Iid): ActivatedAbility[] {
-  const own = defOf(s, iid).script.activated ?? [];
+  const own = (defOf(s, iid).script.activated ?? []).filter((a) => !a.fromHand);
   const granted: ActivatedAbility[] = [];
   if (s.perms[iid]) for (const { src, controller, ab } of staticsInPlay(s)) if (ab.kind === 'grantAbility' && matches(s, iid, ab.filter, controller, src)) granted.push(ab.ability);
   const all = [...own, ...granted];

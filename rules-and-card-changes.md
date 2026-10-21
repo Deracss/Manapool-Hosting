@@ -60,6 +60,7 @@ Everything changed or clarified from the original rules PDF and Cards.xlsx, as u
 - **Steelshaper Vanguard:** BREAKTHROUGH removed from its options.
 
 **New wording**
+- **Cryptic Reclaimer:** During your turn, you may send this card **from your hand** to your Discard Pile; add 1 Zombie from your Discard Pile to your hand. (Used from the hand, not the field; it can't bring itself back; needs another Zombie in your discard pile. Oct 21, 2026.)
 
 | Card | Text |
 |---|---|

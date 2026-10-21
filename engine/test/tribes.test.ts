@@ -129,8 +129,8 @@ test('Cryptic Reclaimer, Morbid Manipulator, Necromantic Summoner, Unholy Grimoi
   s = settle(activate(s, 0, manip), { choose: (d) => (d.options.includes(spawn) ? spawn : d.options[0]) });
   assert.ok(s.players[0].discard.includes(spawn));
   assert.equal(count(s, 0, 'zombie-token'), 1);
-  const rec = put(s, 0, 'Cryptic Reclaimer');
-  s = settle(activate(s, 0, rec), { choose: (d) => (d.options.includes(spawn) ? spawn : d.options[0]) });
+  const rec = toHand(s, 0, 'Cryptic Reclaimer'); // used from the hand
+  s = settle(act(s, { type: 'activate', player: 0, card: rec, ability: 0 }), { choose: (d) => (d.options.includes(spawn) ? spawn : d.options[0]) });
   assert.ok(s.players[0].hand.includes(spawn));
   const summ = toHand(s, 0, 'Necromantic Summoner');
   giveMana(s, 0, 3);

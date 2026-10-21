@@ -1,6 +1,6 @@
 // What the human player can do right now. Legality is checked by asking the engine:
 // an action is legal exactly when apply() accepts it.
-import { activatedOf, apply, canAttack, getDef, isCreature, keywordsOf, RulesError, targetOptions, whoMustAct } from './engine';
+import { activatedOf, apply, handAbilitiesOf, canAttack, getDef, isCreature, keywordsOf, RulesError, targetOptions, whoMustAct } from './engine';
 import type { Action, GameState, Iid, PlayerId } from './engine';
 
 export function tryApply(s: GameState, a: Action): { ok: true; state: GameState } | { ok: false; error: string } {
@@ -42,6 +42,8 @@ export function firstCombo(slots: string[][], picked: string[] = []): string[] |
 export interface HandOption {
   play: { legal: boolean; why?: string; slots: string[][]; needsTarget: boolean };
   charge: { legal: boolean; why?: string };
+  /** Abilities used straight from the hand (e.g. Cryptic Reclaimer). */
+  abilities: { index: number; label: string; legal: boolean; why?: string }[];
 }
 
 export function handOptions(s: GameState, me: PlayerId, card: Iid): HandOption {
@@ -63,7 +65,13 @@ export function handOptions(s: GameState, me: PlayerId, card: Iid): HandOption {
     play = { legal: r.ok, why: r.ok ? undefined : r.error, slots: [], needsTarget };
   }
   const c = tryApply(s, { type: 'charge', player: me, card });
-  return { play, charge: { legal: c.ok, why: c.ok ? undefined : c.error } };
+  const abilities = s.players[me].hand.includes(card)
+    ? handAbilitiesOf(s, card).map((ab, index) => {
+        const r = tryApply(s, { type: 'activate', player: me, card, ability: index });
+        return { index, label: ab.label, legal: r.ok, why: r.ok ? undefined : r.error };
+      })
+    : [];
+  return { play, charge: { legal: c.ok, why: c.ok ? undefined : c.error }, abilities };
 }
 
 export interface FieldOption {
@@ -95,7 +103,10 @@ export function fieldOptions(s: GameState, me: PlayerId, card: Iid): FieldOption
 export function nothingToRespondWith(s: GameState, me: PlayerId): boolean {
   if (whoMustAct(s) !== me || s.decision || !s.window) return false;
   const p = s.players[me];
-  for (const c of p.hand) if (handOptions(s, me, c).play.legal) return false;
+  for (const c of p.hand) {
+    const o = handOptions(s, me, c);
+    if (o.play.legal || o.abilities.some((a) => a.legal)) return false;
+  }
   for (const c of p.field) if (fieldOptions(s, me, c).abilities.some((a) => a.legal)) return false;
   return true;
 }

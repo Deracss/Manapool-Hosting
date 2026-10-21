@@ -245,6 +245,8 @@ export interface ActivatedAbility {
   speed?: Speed; // default 'incantation'
   /** RECONFIGURE: untap this permanent once per round, whenever you have priority (no stack). */
   reconfigure?: boolean;
+  /** Used from your hand instead of the field; sending the card from your hand to your discard pile is the cost. */
+  fromHand?: boolean;
   effects: Effect[];
 }
 

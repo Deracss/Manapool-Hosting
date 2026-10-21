@@ -62,12 +62,12 @@ export const zombieScripts: Record<string, CardScript> = {
   'cryptic-reclaimer': {
     activated: [
       {
-        label: 'Send to discard: a Zombie from your discard pile to your hand',
+        label: 'Discard it: get back a Zombie from your discard pile',
         cost: {},
-        condition: { isYourTurn: true },
+        fromHand: true,
+        condition: { and: [{ isYourTurn: true }, { count: { zone: 'discard', controller: 'you', tribe: 'Zombie' }, atLeast: 1 }] },
         effects: [
-          { do: 'toDiscard', target: 'self' },
-          { do: 'choose', from: { zone: 'discard', controller: 'you', tribe: 'Zombie' }, as: 'z', prompt: 'Choose a Zombie from your discard pile' },
+          { do: 'choose', from: { zone: 'discard', controller: 'you', tribe: 'Zombie', other: true }, as: 'z', prompt: 'Choose a Zombie from your discard pile' },
           { do: 'moveToHand', target: 'var:z', reveal: true },
         ],
       },
