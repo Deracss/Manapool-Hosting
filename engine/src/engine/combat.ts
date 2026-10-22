@@ -10,7 +10,7 @@ import { checkState, destroy, drawCards, loseLife, tapPerm } from './zones.ts';
 
 export function canAttack(s: GameState, iid: Iid): boolean {
   const perm = s.perms[iid];
-  return !!perm && isCreature(s, iid) && !perm.tapped && (!perm.sick || hasKeyword(s, iid, 'HASTE'));
+  return !!perm && isCreature(s, iid) && !perm.tapped && (!perm.sick || hasKeyword(s, iid, 'HASTE')) && !(perm.flags.attackedThisTurn && hasKeyword(s, iid, 'VIGILANCE'));
 }
 
 export function declareAttack(s: GameState, pid: PlayerId, attacker: Iid, target: PlayerId, targetCreature?: Iid, forced = false): void {
@@ -19,6 +19,7 @@ export function declareAttack(s: GameState, pid: PlayerId, attacker: Iid, target
   if (!isCreature(s, attacker)) fail(`${nameOf(s, attacker)} is not a creature.`);
   if (!forced && perm.tapped) fail(`${nameOf(s, attacker)} is tapped.`);
   if (!forced && perm.sick && !hasKeyword(s, attacker, 'HASTE')) fail(`${nameOf(s, attacker)} has summoning sickness.`);
+  if (!forced && perm.flags.attackedThisTurn && hasKeyword(s, attacker, 'VIGILANCE')) fail(`${nameOf(s, attacker)} already attacked this turn (VIGILANCE keeps it untapped, but it attacks only once).`);
   if (target === pid || player(s, target).eliminated) fail('Choose a living opponent as the target.');
   if (targetCreature) {
     if (!hasKeyword(s, attacker, 'FACEOFF')) fail('Only a creature with FACEOFF can attack a creature.');
@@ -27,6 +28,7 @@ export function declareAttack(s: GameState, pid: PlayerId, attacker: Iid, target
 
   const p = player(s, pid);
   p.attacksThisTurn++;
+  perm.flags.attackedThisTurn = true;
   s.combat = {
     attacker,
     attackerController: pid,

@@ -47,7 +47,7 @@ const ALIASES: Record<string, string> = {
 };
 
 export const TYPE_HELP: Record<string, string> = {
-  Creature: 'Creatures stay on the field. They can attack, block and boost. A new creature has summoning sickness: it can boost, but it can\'t attack or use TAP abilities until your next turn.',
+  Creature: 'Creatures stay on the field. They can attack, block and boost. A new creature has summoning sickness: it can block and boost, but it can\'t attack or use TAP abilities until your next turn.',
   Token: 'A creature created by another card. When it leaves the field it is gone for good.',
   Artifact: 'Artifacts stay on the field and usually have abilities you can use.',
   Anthem: 'Anthems stay on the field and give you an ongoing effect.',

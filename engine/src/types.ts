@@ -310,6 +310,7 @@ export interface PermFlags {
   boostedThisTurn: boolean; // tapped to boost this turn
   wasBoostedThisTurn: boolean; // received a boost this turn
   dealtPlayerDamageThisTurn: boolean;
+  attackedThisTurn: boolean; // VIGILANCE creatures still attack only once per turn
 }
 
 export interface TempMod {

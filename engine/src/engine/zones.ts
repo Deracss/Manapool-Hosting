@@ -34,7 +34,7 @@ export function enterField(s: GameState, iid: Iid, controller: PlayerId): void {
     countersFrom: {},
     damage: 0,
     mods: [],
-    flags: { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false },
+    flags: { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false, attackedThisTurn: false },
     abilitiesUsed: [],
     memo: [],
   };

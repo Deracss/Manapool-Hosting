@@ -333,3 +333,33 @@ test('activated abilities are Incantation speed unless the card says otherwise',
   s = passRound(s);
   assert.ok(s.players[1].field.some((i) => s.cards[i].cardId === 'goblin-token'));
 });
+
+test('creatures with summoning sickness can block and boost', () => {
+  let s = setup();
+  const a = put(s, 0, 'Goblin Elder');
+  const sickBooster = put(s, 0, 'Goblin Elder', { sick: true });
+  const sickBlocker = put(s, 1, 'Goblin Elder', { sick: true });
+  const sickDefBooster = put(s, 1, 'Goblin Elder', { sick: true });
+  s = apply(s, { type: 'attack', player: 0, attacker: a, target: 1 });
+  while (!s.decision) s = apply(s, { type: 'pass', player: whoMustAct(s)! });
+  assert.equal(s.decision.kind, 'block');
+  assert.ok(s.decision.options.includes(sickBlocker));
+  s = apply(s, { type: 'block', player: 1, blocker: sickBlocker });
+  while (!s.decision) s = apply(s, { type: 'pass', player: whoMustAct(s)! });
+  assert.equal(s.decision.kind, 'boostAttack');
+  assert.ok(s.decision.options.includes(sickBooster));
+  s = apply(s, { type: 'boost', player: 0, creatures: [sickBooster] });
+  while (s.decision?.kind !== 'boostDefense') s = apply(s, { type: 'pass', player: whoMustAct(s)! });
+  assert.ok(s.decision.options.includes(sickDefBooster));
+  s = apply(s, { type: 'boost', player: 1, creatures: [sickDefBooster] });
+  assert.equal(s.perms[sickBooster].tapped, true);
+  assert.equal(s.perms[sickDefBooster].tapped, true);
+});
+
+test('VIGILANCE: the attacker stays untapped but attacks only once per turn', () => {
+  let s = setup();
+  const g = put(s, 0, 'Groot, Goblin Mercenary');
+  s = attack(s, 0, g, 1);
+  assert.equal(s.perms[g].tapped, false);
+  assert.throws(() => apply(s, { type: 'attack', player: 0, attacker: g, target: 2 }), /already attacked/);
+});

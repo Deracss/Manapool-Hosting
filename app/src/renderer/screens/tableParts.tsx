@@ -816,7 +816,7 @@ export function useTableFx(s: GameState, enabled: boolean) {
         if (perm.counters > old.counters) {
           counter.add(iid);
           const r = R.get(iid);
-          if (r) bs.push({ id: nextId.current++, kind: 'pip', rect: r, text: `+${perm.counterAtk - old.counterAtk}/+${perm.counterDef - old.counterDef}`, delay: 0 });
+          if (r) bs.push({ id: nextId.current++, kind: 'pip', rect: r, text: counterText(perm, old), delay: 0 });
           snd('counter');
         }
       }
@@ -935,7 +935,7 @@ export function useTableFx(s: GameState, enabled: boolean) {
       const old = before.perms[iid];
       if (!old) continue;
       if (perm.damage > old.damage) add(iid, `−${perm.damage - old.damage}`, 'red');
-      if (perm.counters > old.counters) add(iid, `+${perm.counterAtk - old.counterAtk}/+${perm.counterDef - old.counterDef}`, 'gold');
+      if (perm.counters > old.counters) add(iid, counterText(perm, old), 'gold');
     }
     for (const p of s.players) {
       const o = before.players[p.id];
@@ -1245,4 +1245,13 @@ export function PingLayer({ pings, onGone }: { pings: Ping[]; onGone: (id: numbe
       })}
     </div>
   );
+}
+
+/** "+1/+1" for stat counters, "+1 counter" for plain ones. */
+function counterText(perm: { counters: number; counterAtk: number; counterDef: number }, old: { counters: number; counterAtk: number; counterDef: number }): string {
+  const a = perm.counterAtk - old.counterAtk;
+  const d = perm.counterDef - old.counterDef;
+  if (a || d) return `+${a}/+${d}`;
+  const n = perm.counters - old.counters;
+  return `+${n} counter${n === 1 ? '' : 's'}`;
 }

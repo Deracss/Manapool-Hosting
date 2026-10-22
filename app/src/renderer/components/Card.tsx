@@ -135,9 +135,16 @@ export function showInGame(s: GameState, iid: Iid): CardShow {
   }
   const sick = perm.sick && typeof d.attack === 'number' && !keywordsOf(s, iid).includes('HASTE');
   if (perm.counters) {
-    const per = perm.counterAtk === perm.counterDef ? `+${perm.counterAtk}/+${perm.counterDef}` : `+${perm.counterAtk}/+${perm.counterDef}`;
-    badges.push({ label: perm.counters > 1 ? `${per} ×${perm.counters}` : per, tone: 'gold' });
-    notes.push(`Counters: +${perm.counterAtk}/+${perm.counterDef} from ${perm.counters} counter${perm.counters === 1 ? '' : 's'}.`);
+    const n = `${perm.counters} counter${perm.counters === 1 ? '' : 's'}`;
+    if (!perm.counterAtk && !perm.counterDef) {
+      // Plain counters (no stat change), e.g. Machinist's Reservoir.
+      badges.push({ label: n, tone: 'gold' });
+      notes.push(`Has ${n}.`);
+    } else {
+      const per = `+${perm.counterAtk}/+${perm.counterDef}`;
+      badges.push({ label: perm.counters > 1 ? `${per} ×${perm.counters}` : per, tone: 'gold' });
+      notes.push(`Counters: ${per} from ${n}.`);
+    }
   }
   if (perm.damage) {
     badges.push({ label: `−${perm.damage} dmg`, tone: 'red' });
@@ -145,7 +152,7 @@ export function showInGame(s: GameState, iid: Iid): CardShow {
   }
   if (sick) {
     badges.push({ label: 'New', tone: 'dark' });
-    notes.push("Summoning sickness: it can boost, but it can't attack or use TAP abilities until its controller's next turn.");
+    notes.push("Summoning sickness: it can block and boost, but it can't attack or use TAP abilities until its controller's next turn.");
   }
   if (perm.infectedBy !== undefined) {
     const by = perm.infectedBy === ME ? 'you' : s.players[perm.infectedBy].name;

@@ -46,7 +46,7 @@ export function put(s: GameState, pid: PlayerId, name: string, o: { sick?: boole
     countersFrom: {},
     damage: 0,
     mods: [],
-    flags: { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false },
+    flags: { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false, attackedThisTurn: false },
     abilitiesUsed: [],
     memo: [],
   };

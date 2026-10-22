@@ -43,6 +43,8 @@ Everything changed or clarified from the original rules PDF and Cards.xlsx, as u
 | CRITICAL BOOST | When this boosts an attack, that attack gains CRITICAL. |
 | ILLUSION | A creature type created by spells. |
 | TRAMPLE, FLASH | As in MTG. |
+| VIGILANCE | Attacking doesn't tap this creature, but it still attacks only once per turn. |
+| Summoning sickness | A new creature can't attack or use TAP abilities until its controller's next turn (unless HASTE). It can block and boost. |
 | Counter card | A Spell or Incantation that negates. |
 | BREAKTHROUGH | Removed from the game. |
 | FLYING | On hold; not used. |

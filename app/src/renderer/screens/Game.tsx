@@ -175,7 +175,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
           const next = structuredClone(prev);
           const c = newInstance(next, cardIdByName(name), pid, name.endsWith('Token'));
           next.players[pid].field.push(c.iid);
-          next.perms[c.iid] = { iid: c.iid, controller: pid, tapped, sick: false, enteredTurn: next.turn, counters: 0, counterAtk: 0, counterDef: 0, countersFrom: {}, damage: 0, mods: [], flags: { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false }, abilitiesUsed: [], memo: [] };
+          next.perms[c.iid] = { iid: c.iid, controller: pid, tapped, sick: false, enteredTurn: next.turn, counters: 0, counterAtk: 0, counterDef: 0, countersFrom: {}, damage: 0, mods: [], flags: { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false, attackedThisTurn: false }, abilitiesUsed: [], memo: [] };
           return next;
         }),
       setLife: (pid: PlayerId, n: number) =>
@@ -1441,7 +1441,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                 </div>
               ))}
               {!popover.opts.attackTargets.length && !popover.opts.abilities.length && (
-                <span className="why">{isCreature(s, popover.iid) ? (s.perms[popover.iid]?.tapped ? 'Tapped.' : s.perms[popover.iid]?.sick ? 'Summoning sickness: it can attack next turn.' : 'It can only attack during your Main phase.') : 'Nothing to do with this card right now.'}</span>
+                <span className="why">{isCreature(s, popover.iid) ? (s.perms[popover.iid]?.tapped ? 'Tapped.' : s.perms[popover.iid]?.sick ? 'Summoning sickness: it can block and boost now, and attack next turn.' : s.perms[popover.iid]?.flags.attackedThisTurn ? 'It already attacked this turn.' : 'It can only attack during your Main phase.') : 'Nothing to do with this card right now.'}</span>
               )}
             </>
           )}

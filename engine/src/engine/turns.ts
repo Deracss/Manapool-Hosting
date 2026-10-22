@@ -23,7 +23,7 @@ export function beginTurn(s: GameState, pid: PlayerId): void {
     p.discardPlays = 0;
   }
   for (const perm of Object.values(s.perms)) {
-    perm.flags = { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false };
+    perm.flags = { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false, attackedThisTurn: false };
     perm.abilitiesUsed = [];
   }
   log(s, `--- ${player(s, pid).name}'s turn ---`);
