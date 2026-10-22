@@ -2,7 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { ME, setSeat } from '../me';
 import type { MouseEvent } from 'react';
 import { Card, showDef, showInGame } from '../components/Card';
-import { attackOf, boostValue, botAction, cardIdByName, chargesAllowed, createGame, defenseOf, getDef, hasKeyword, hasStatic, isCreature, newInstance, whoMustAct } from '../engine';
+import { attackOf, boostValue, keywordsOf, botAction, cardIdByName, chargesAllowed, createGame, defenseOf, getDef, hasKeyword, hasStatic, isCreature, newInstance, whoMustAct } from '../engine';
 import { setHovered } from '../hover';
 import type { Action, GameState, Iid, PlayerId } from '../engine';
 import { fieldOptions, firstCombo, handOptions, nothingToRespondWith, targetPrompts, tryApply } from '../legal';
@@ -141,6 +141,8 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   const zoomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverTick = useRef(0);
   const [openStacks, setOpenStacks] = useState<Set<string>>(new Set());
+  // Spread-out stacks fold back each turn, so tokens whose sickness ended rejoin their group.
+  useEffect(() => setOpenStacks(new Set()), [s.turn]);
   const [emoteMenu, setEmoteMenu] = useState(false);
   const [bubbles, setBubbles] = useState<Record<number, { id: number; key: number }>>({});
   const lastEmote = useRef(0);
@@ -519,6 +521,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
       const defending = c.blocker ?? c.targetCreature;
       const atkSide = pickDecision.kind === 'boostAttack';
       const gain = atkSide ? boostValue(s, iid) : 1;
+      if (picks.includes(iid)) return { text: `+${gain} chosen`, tone: 'gold' };
       if (!defending) return { text: `+${gain} ATK`, tone: 'gold' };
       const atk = attackOf(s, c.attacker) + (atkSide ? picks : c.atkBoosters).filter((b) => s.perms[b]).reduce((n, b) => n + boostValue(s, b), 0);
       const def = defenseOf(s, defending) + (atkSide ? 0 : picks.length);
@@ -605,9 +608,14 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     const p = s.perms[iid];
     if (!c?.isToken || !p) return null;
     // Anything involved in what's happening right now stays on its own.
-    if (inCombat(iid) || topSet.has(iid) || targetSet.has(iid) || decisionOptions.has(iid) || picks.includes(iid) || highlight === iid || (drag?.started && drag.zones.cards.has(iid))) return null;
+    // Block/boost choices keep the stack: options, chosen and the rest form separate groups.
+    if (inCombat(iid) || topSet.has(iid) || targetSet.has(iid) || highlight === iid || (drag?.started && drag.zones.cards.has(iid))) return null;
     if (p.attachedTo || Object.values(s.perms).some((o) => o.attachedTo === iid)) return null;
-    return JSON.stringify([p.controller, c.cardId, c.override ?? null, [...c.extraKeywords].sort(), p.tapped, p.sick, p.counters, p.counterAtk, p.counterDef, p.damage, p.mods, p.infectedBy ?? null]);
+    const creature = isCreature(s, iid);
+    // Summoning sickness only splits creatures that can't ignore it.
+    const sick = creature && p.sick && !hasKeyword(s, iid, 'HASTE') && !decisionOptions.has(iid);
+    const stats = creature ? [attackOf(s, iid), defenseOf(s, iid)] : null;
+    return JSON.stringify([p.controller, c.cardId, c.override ?? null, [...keywordsOf(s, iid)].sort(), stats, p.tapped, sick, p.counters, p.damage, p.infectedBy ?? null, decisionOptions.has(iid), picks.includes(iid)]);
   };
   const stackUp = (ids: Iid[]): { iid: Iid; n: number; key: string; members: Iid[]; openKey?: string; lastOpen?: boolean }[] => {
     const out: { iid: Iid; n: number; key: string; members: Iid[]; openKey?: string; lastOpen?: boolean }[] = [];
@@ -639,16 +647,25 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     return out;
   };
 
-  const wrapStack = (it: { iid: Iid; n: number; key: string; lastOpen?: boolean; openKey?: string }, card: JSX.Element): JSX.Element => {
+  const wrapStack = (it: { iid: Iid; n: number; key: string; members: Iid[]; lastOpen?: boolean; openKey?: string }, card: JSX.Element): JSX.Element => {
+    const choosing = !!pickDecision && !targeting && decisionOptions.has(it.iid);
     if (it.n > 1)
       return (
         <div
           key={it.key}
           className="tok-stack"
-          title="Click to spread out"
+          title={choosing ? (picks.includes(it.iid) ? 'Click to unpick one' : 'Click to pick one') : 'Click to spread out'}
           onClickCapture={(e) => {
             e.stopPropagation();
             e.preventDefault();
+            if (choosing) {
+              // Pick or unpick one token from the stack.
+              setPreview({ iid: it.iid });
+              if (picks.includes(it.iid)) setPicks(picks.filter((x) => x !== it.members[it.members.length - 1]));
+              else if (pickDecision!.kind === 'block') setPicks([it.iid]);
+              else setPicks([...picks, it.iid]);
+              return;
+            }
             setOpenStacks((o) => new Set(o).add(it.key));
           }}
         >

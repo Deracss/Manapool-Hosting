@@ -745,6 +745,8 @@ p.small, .muted.small { font-size: 13px; margin: 0; }
 /* token stacks (0.3.0) */
 .tok-stack { position: relative; cursor: pointer; }
 .tok-stack > .card-box { box-shadow: 5px -5px 0 -1px rgba(160, 130, 60, 0.9), 10px -10px 0 -2px rgba(120, 95, 40, 0.8); }
+.tok-stack > .card-box.ring-select { box-shadow: 0 0 0 3px var(--cyan), 0 0 18px rgba(127, 214, 232, 0.55), 5px -5px 0 -1px rgba(160, 130, 60, 0.9), 10px -10px 0 -2px rgba(120, 95, 40, 0.8); }
+.tok-stack > .card-box.ring-chosen { box-shadow: 0 0 0 4px var(--gold), 0 0 18px rgba(227, 185, 90, 0.6), 5px -5px 0 -1px rgba(160, 130, 60, 0.9), 10px -10px 0 -2px rgba(120, 95, 40, 0.8); }
 .tok-n { position: absolute; right: -10px; top: -12px; z-index: 6; padding: 2px 9px; border-radius: 10px; background: var(--gold); color: #1b1608; font-weight: 900; font-size: 14px; box-shadow: 0 0 0 2px #121419; pointer-events: none; }
 .tok-collapse { align-self: center; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--line2); background: var(--panel); color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .tok-collapse:hover { color: var(--text); }
