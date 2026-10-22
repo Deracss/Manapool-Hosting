@@ -155,7 +155,7 @@ test("Adeventurer's Breakfast, Reinforcements, Out of Bullets, Rinse, Two for on
   assert.equal(handSize(s, 0), h, 'discarded h, drew h');
   h = handSize(s, 0);
   s = settle(play(s, 0, 'Two for one'));
-  assert.equal(handSize(s, 0), h + 3);
+  assert.equal(handSize(s, 0), h + 4, 'draws 3, then 1 more for the life lost');
   assert.equal(life(s, 0), 6);
 });
 
@@ -184,7 +184,7 @@ test('Mana artifacts: Mana Tree, Elemental Well, Insight Orb, Sleight of Hand, C
   assert.equal(s.players[0].corruptedRocks, 1);
 });
 
-test('Mana Portal swaps an Orb with a hand card once per round; Mana Conductor makes a Rock', () => {
+test('Mana Portal swaps an Orb with a hand card once per round; Mana Conductor makes 2 Rocks', () => {
   let s = setup();
   const portal = put(s, 0, 'Mana Portal');
   const orbCard = s.players[0].hand[0];
@@ -195,7 +195,7 @@ test('Mana Portal swaps an Orb with a hand card once per round; Mana Conductor m
   const cond = put(s, 0, 'Mana Conductor');
   const deckLen = s.players[0].deck.length;
   s = settle(activate(s, 0, cond));
-  assert.equal(s.players[0].rocks, 1);
+  assert.equal(s.players[0].rocks, 2);
   assert.equal(s.players[0].deck.length, deckLen + 1);
 });
 

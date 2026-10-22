@@ -90,6 +90,21 @@ export function botAction(s: GameState): Action {
       return { type: 'choosePlayer', player: pid, choice: opp ?? d.options[0] };
     }
     // Copied Spells/Incantations: aim at an opponent's creature or card.
+    // Raining Arrows: block with a creature that holds, or chump only when the hit would be lethal; boost only as needed.
+    if (d.as === 'arrowBlock' || d.as === 'arrowBooster') {
+      const x = Number(d.ctx.vars.x ?? 0);
+      if (d.as === 'arrowBlock') {
+        const holds = d.options.filter((o) => defenseOf(s, o) > x).sort((a, b) => creatureScore(s, a) - creatureScore(s, b))[0];
+        if (holds) return { type: 'choose', player: pid, choice: holds };
+        const lethal = p.life <= x;
+        const cheapest = [...d.options].sort((a, b) => creatureScore(s, a) - creatureScore(s, b))[0];
+        return { type: 'choose', player: pid, choice: lethal || (x - 1 > 0 && d.options.length > 1) ? (cheapest ?? null) : null };
+      }
+      const blk = d.ctx.vars.arrowBlock;
+      const have = typeof blk === 'string' && s.perms[blk] ? defenseOf(s, blk) + Number(d.ctx.vars.arrowBoosts ?? 0) : 0;
+      const pick = d.options.find((o) => o !== blk);
+      return { type: 'choose', player: pid, choice: have <= x && pick ? pick : null };
+    }
     if (d.as === 'copyTarget') {
       const theirs = d.options.find((o) => (s.perms[o]?.controller ?? s.stack.find((it) => it.kind === 'card' && it.iid === o)?.controller) !== pid);
       return { type: 'choose', player: pid, choice: theirs ?? d.options[0] };
@@ -127,6 +142,12 @@ export function botAction(s: GameState): Action {
       const a: Action = { type: 'play', player: pid, card };
       if (legal(s, a)) return a;
     }
+  }
+
+  // Tombstone: play a marked creature from the discard pile by paying its cost.
+  for (const m of p.marked ?? []) {
+    const a: Action = { type: 'play', player: pid, card: m.iid };
+    if (legal(s, a)) return a;
   }
 
   // 2. Removal on the biggest threat (held back for small targets, so Incantations stay ready as responses).

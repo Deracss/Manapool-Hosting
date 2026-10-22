@@ -61,6 +61,56 @@ Everything changed or clarified from the original rules PDF and Cards.xlsx, as u
 - **Database:** RELOAD → RECONFIGURE.
 - **Steelshaper Vanguard:** BREAKTHROUGH removed from its options.
 
+**Balance pass (Oct 22, 2026)**
+- **Cost 1:** Creature Retrieval, Repairs, Sacrifice, Angel's Protection, Confused Knight, Morale Boost, Summoning Seal, Price of Passage, Blink, Path of the Seer.
+- **Cost 2:** Anthropomorph, Disarm, Educated Civilian, Pact of Insight, Parasitic Society, Shadowveil Shroud, The Gods' Blessing, Artificer's Insight, Bounce, Forgotten Memory, Shadowbane Sacrifice, Mana Droid.
+- **Cost 3:** Reanimation, Replica Creation, Reset, Rinse, Shifting Relic, Weapons Rack, Echoing Reflection, Arcane Foundry, Database, Xavier, Vampire Groom.
+- **Cost 4:** Mana Processing Unit, Raining Arrows, Corrupted Artificer, Inspired Vampire (now **1/4**).
+- **Now Incantations:** Echoes of the Past, Mimicry Magic, Reanimation.
+- **Atredes, Vampire Overlord:** ATK **4**. **Alucard:** gains **HASTE**.
+- **Support MK II:** no mana cost: tap an Artifact you control, draw 1.
+- **Corrupted Mana Tree:** no mana cost: Tap, create 1 Corrupted Mana Rock.
+- **Mana Conductor:** creates **2** Mana Rocks.
+- **Urgal the Whisperer:** no 3-counter limit.
+- **Demon Leecher, Demon Pup:** also trigger when you COMMAND.
+- **Rinse:** GUIDE 3, then draw 3.
+- **Unholy Grimoire:** also draws 1 card.
+- **Summoning Seal:** the negated creature's controller creates 1 Mana Rock.
+- **Counter the Counter:** draws 1 card when it negates.
+- **Shadowveil Shroud:** Pay 2: equip (no Tap). **Magic Shield:** Pay 1: equip; opponents' card effects can't target or choose the equipped creature.
+- **Tombstone:** also marks a creature in your discard pile; until your next End Phase you may play it by paying its cost (normal mana).
+- **Tavern:** also: the first boost each of your creatures gets in a battle from a creature of its own tribe counts for 1 more.
+- **Vendor Street:** removed (same as Anthem #1).
+
+**Newly implemented (Oct 22, 2026)**
+
+| Card | How it works |
+|---|---|
+| Abyssal Disposal | A creature from your deck to your discard pile; with 4+ Mana Orbs, draw 2. |
+| Echoes of the Past | Play a Spell or Incantation from your discard pile, paying its cost. |
+| Mimicry Magic | Your next Spell or Incantation is copied (new targets allowed). |
+| Parasitic Society | 1 mana per creature of yours with +X/+Y counters. |
+| Ragnarok | Every creature returns to its owner's hand; tokens cease to exist. |
+| Raining Arrows | X = your creatures' total attack. A creature takes X damage. A player may block with an untapped creature and boost the block (+1 DEF per creature, tapped). Unblocked: they lose X life. Block beaten: blocker destroyed, 1 life. Equal: blocker destroyed. X > 6: CRITICAL (no draws). |
+| Shifting Relic | Pay 2: a copy of a creature or Artifact until the end of the turn (Artifact and Creature). Not played this turn: no summoning sickness. |
+| Weapons Rack | Tap: your creatures get +1/+1 until the end of the turn per Equipment you control. |
+| Confused Knight | Switches a creature's ATK and DEF for good; later buffs switch too (1/4 → 4/1, then +2/+0 → 4/3). |
+| Price of Passage | The card's controller may pay 1 mana (an OFFER: a contract); if not, the card is negated. |
+| Blink | The permanent leaves until the End Phase (like FADE OUT). |
+| Bounce | The permanent returns to its owner's hand (tokens cease to exist). |
+| Shadowbane Sacrifice | Negate a card; sacrifice a creature you control as you play it. |
+| Echoing Reflection | Copy a card being played (a permanent copy is a token on your field). |
+| Low Kick | Destroy all tapped creatures of an opponent you fought this turn (attacked or were attacked by). |
+| Book of Spells | Your Spells can be played at incantation speed and count as Incantations. |
+| Mount Olympus | Playing a creature with printed cost 5+ creates 1 Mana Rock. |
+| Spiteful Bargain | When a player refuses your OFFER: tap one of their creatures, +1 counter. At 3: remove them, 2 damage split among opponents. |
+| Token Tide | Your token creatures gain "Tap: add 1 mana". |
+| Twin Rhythms | Your Upkeep triggers happen twice. |
+| Fine Print | 10 Souls: once per round, an OFFER is a COMMAND for one player. 20 Souls: once per round, for every player. |
+| Royal Banquet | Your End Phase: if 3+ of your attacks this turn weren't blocked, 1 damage to a player. |
+
+**Life loss (Oct 22, 2026):** every point of life lost draws a card, in combat or from card effects, unless CRITICAL or the card says otherwise (DOUBLE STRIKE: 2 life, 2 cards).
+
 **New wording**
 - **Cryptic Reclaimer:** During your turn, you may send this card **from your hand** to your Discard Pile; add 1 Zombie from your Discard Pile to your hand. (Used from the hand, not the field; it can't bring itself back; needs another Zombie in your discard pile. Oct 21, 2026.)
 
@@ -114,18 +164,20 @@ Everything changed or clarified from the original rules PDF and Cards.xlsx, as u
 - **Goblin Assassin:** doubles its total attack (after boosts) when it clashes as the attacker.
 - **Goblin Berserker:** DOUBLE STRIKE for that battle if a Goblin boosts it, even when unblocked.
 - **Goblin Wizard:** the extra point is for attack boosts only.
-- **Urgal the Whisperer:** gives one Goblin at most 3 counters.
 - **Grukza:** +1 token each time you create tokens.
 - **Goblin Planner:** its mana ability uses the stack.
 - **Druids #1:** pay the charged card's cost to copy it (any card).
 - **El Crow Druid:** "Pay 2: untap" and "Destroy 1 of your Mana Orbs: +2/+2" (not a counter).
 - **Druids #4:** counts your Mana Orbs, not Rocks.
-- **Cloudwhisper, Vendor Street, Anthem #1:** each gives 1 extra charge per turn.
+- **Cloudwhisper, Anthem #1:** each gives 1 extra charge per turn.
 - **Charitable Demon:** the defending player doesn't refill 1 Mana Orb in their next Upkeep.
 
 ## Needs your OK
 
-- **Life loss draws:** today an attack draws 1 card even with DOUBLE STRIKE (2 life), and life lost to card effects (e.g. Two-for-One) draws nothing. Should every point of life lost draw a card?
+- **Weapons Rack:** counts every Equipment you control, equipped or not.
+- **Blink:** the card comes back at the End Phase like FADE OUT (no new ETB).
+- **Royal Banquet:** counts your attacks this turn with no blocker (FACEOFF attacks count); you may pick any player.
+
 - **Clockwork Servitor:** "another" Artifact; untapping itself loops forever now that it's an Artifact.
 - **Krr'ask (ruling 17, "No"):** I read this as: the creature itself turns into your 1/1 Zombie (not a token). If it's destroyed first, you get a 1/1 Zombie Token.
 - **Frog Song:** counts triggered abilities only, not activated ones.

@@ -110,7 +110,7 @@
       "nameIsPlaceholder": false,
       "type": "Anthem",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Whenever you charge mana you may draw a card.",
       "source": {
@@ -140,7 +140,7 @@
       "speed": "spell",
       "cost": 4,
       "keywordRefs": [],
-      "text": "Creatures you cast cost 1 less",
+      "text": "Creatures you cast cost 1 less. The first boost each of your creatures receives in a battle from a creature of the same tribe counts for 1 more.",
       "source": {
         "tab": "Anthem",
         "row": 7
@@ -158,20 +158,6 @@
       "source": {
         "tab": "Anthem",
         "row": 8
-      }
-    },
-    {
-      "id": "vendor-street",
-      "name": "Vendor Street",
-      "nameIsPlaceholder": false,
-      "type": "Anthem",
-      "speed": "spell",
-      "cost": 4,
-      "keywordRefs": [],
-      "text": "You may play an extra mana card during your turn.",
-      "source": {
-        "tab": "Anthem",
-        "row": 9
       }
     },
     {
@@ -224,7 +210,7 @@
       "nameIsPlaceholder": false,
       "type": "Anthem",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [
         "RECONFIGURE"
       ],
@@ -276,7 +262,7 @@
       "keywordRefs": [
         "OFFER"
       ],
-      "text": "At 10 Souls - Once during your turn, make an OFFER a command for a player of your choice. - At 20 Souls - Once during your turn, an OFFER is a command - Only one effect resolves per turn.",
+      "text": "At 10 Souls - Once per round, make an OFFER a COMMAND for a player of your choice. At 20 Souls - Once per round, make an OFFER a COMMAND for every player.",
       "source": {
         "tab": "Anthem",
         "row": 16
@@ -334,7 +320,7 @@
       "speed": "spell",
       "cost": 3,
       "keywordRefs": [],
-      "text": "Whenever a Creature in your drop zone is played to your field; generate 1 Mana Rock.",
+      "text": "Whenever a Creature in your drop zone is played to your field; generate 1 Mana Rock and mark a creature in your discard pile: until your next End Phase you may play it by paying its cost.",
       "source": {
         "tab": "Anthem",
         "row": 20
@@ -402,7 +388,7 @@
       "nameIsPlaceholder": false,
       "type": "Anthem",
       "speed": "spell",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [
         "GUIDE"
       ],
@@ -434,7 +420,7 @@
       "nameIsPlaceholder": false,
       "type": "Anthem",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [],
       "text": "You can tap your Artifacts to pay for 1 mana when playing an Artifact.",
       "source": {
@@ -524,7 +510,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [],
       "text": "Sacrifice a creature; destroy 1 creature.",
       "source": {
@@ -538,7 +524,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [],
       "text": "Return 1 Artifact from your drop to your hand.",
       "source": {
@@ -608,8 +594,8 @@
       "id": "mimicry-magic",
       "name": "Mimicry Magic",
       "nameIsPlaceholder": false,
-      "type": "Spell",
-      "speed": "spell",
+      "type": "Incantation",
+      "speed": "incantation",
       "cost": 2,
       "keywordRefs": [],
       "text": "Copy your next Spell or incantation. You may choose new targets for the copy.",
@@ -624,7 +610,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Destroy target artifact",
       "source": {
@@ -666,7 +652,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Destroy target Anthem.",
       "source": {
@@ -694,7 +680,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Target creature becomes a 1/1 Human with no abilities.",
       "source": {
@@ -708,7 +694,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Add 1 mana to your mana pool for each creature with Combat Counters.",
       "source": {
@@ -781,7 +767,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [],
       "text": "Untap all of your artifacts.",
       "source": {
@@ -809,9 +795,9 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [],
-      "text": "Draw 3 cards.",
+      "text": "GUIDE 3, then draw 3 cards.",
       "source": {
         "tab": "Spell",
         "row": 24
@@ -849,9 +835,9 @@
       "id": "reanimation",
       "name": "Reanimation",
       "nameIsPlaceholder": false,
-      "type": "Spell",
-      "speed": "spell",
-      "cost": 4,
+      "type": "Incantation",
+      "speed": "incantation",
+      "cost": 3,
       "keywordRefs": [],
       "text": "Return target creature from a discard pile to your field.",
       "source": {
@@ -865,11 +851,11 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 5,
+      "cost": 4,
       "keywordRefs": [
         "CRITICAL"
       ],
-      "text": "Deal x damage to target creature or player (x = the sum of all of your creature's attack). If x>6; gain CRITICAL",
+      "text": "Deal X damage to target creature or player (X = the sum of all of your creatures' attack). If X>6; gain CRITICAL. A targeted player may block with a creature; both sides may boost.",
       "source": {
         "tab": "Spell",
         "row": 28
@@ -881,7 +867,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 5,
+      "cost": 4,
       "keywordRefs": [],
       "text": "Add mana to your mana pool equal to have the amount of artifacts on the board, rounded down.",
       "source": {
@@ -911,7 +897,7 @@
       "speed": "spell",
       "cost": 2,
       "keywordRefs": [],
-      "text": "Search your deck for 1 creature and send it to the Discard Pile.",
+      "text": "Search your deck for 1 creature and send it to the Discard Pile. If you have at least 4 cards in your mana pool, draw 2 cards.",
       "source": {
         "tab": "Spell",
         "row": 31
@@ -963,8 +949,8 @@
       "id": "echoes-of-the-past",
       "name": "Echoes of the Past",
       "nameIsPlaceholder": false,
-      "type": "Spell",
-      "speed": "spell",
+      "type": "Incantation",
+      "speed": "incantation",
       "cost": 2,
       "keywordRefs": [],
       "text": "Play a Spell or Incantation from your discard pile. Pay its cost.",
@@ -979,7 +965,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [],
       "text": "Create a copy of target Artifact on the board.",
       "source": {
@@ -1007,7 +993,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [],
       "text": "Move one creature from your discard pile to your hand.",
       "source": {
@@ -1021,7 +1007,7 @@
       "nameIsPlaceholder": false,
       "type": "Spell",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [
         "OFFER"
       ],
@@ -1037,7 +1023,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [
         "CLASH"
       ],
@@ -1109,7 +1095,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 3,
+      "cost": 1,
       "keywordRefs": [],
       "text": "Target permanent leaves the field. It returns to the field at the end of the turn.",
       "source": {
@@ -1123,7 +1109,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Return target permanent from the field to the owner's hand.",
       "source": {
@@ -1167,7 +1153,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [],
       "text": "Switch target creature's attack with its defense.",
       "source": {
@@ -1198,7 +1184,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [
         "INDESTRUCTIBLE"
       ],
@@ -1228,7 +1214,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [],
       "text": "Copy target card being played.",
       "source": {
@@ -1256,7 +1242,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [
         "OFFER"
       ],
@@ -1272,7 +1258,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Negate target card being played and destroy 1 creature you control.",
       "source": {
@@ -1378,7 +1364,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [
         "GUIDE"
       ],
@@ -1394,7 +1380,7 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
       "text": "Add 1 card from your drop to your hand.",
       "source": {
@@ -1408,9 +1394,9 @@
       "nameIsPlaceholder": false,
       "type": "Incantation",
       "speed": "incantation",
-      "cost": 2,
+      "cost": 1,
       "keywordRefs": [],
-      "text": "Negate the Play of a Creature.",
+      "text": "Negate the Play of a Creature. Its controller creates 1 Mana Rock.",
       "source": {
         "tab": "Incantation",
         "row": 28
@@ -1424,7 +1410,7 @@
       "speed": "incantation",
       "cost": 1,
       "keywordRefs": [],
-      "text": "Negate target Counter card (a Spell or Incantation that negates).",
+      "text": "Negate target Counter card (a Spell or Incantation that negates). Draw 1 card.",
       "source": {
         "tab": "Incantation",
         "row": 29
@@ -1514,7 +1500,7 @@
       "speed": "spell",
       "cost": 3,
       "keywordRefs": [],
-      "text": "2cost; Equip to a creature you control - Equipped creature cannot be targeted by your opponent's card effects.",
+      "text": "Pay 1; Equip to a creature you control - Equipped creature cannot be targeted by your opponents' card effects.",
       "source": {
         "tab": "Artifact",
         "row": 7
@@ -1588,7 +1574,7 @@
       "speed": "spell",
       "cost": 3,
       "keywordRefs": [],
-      "text": "Tap; Send 1 card from your hand to the bottom of the deck; create 1 mana rock.",
+      "text": "Tap; Send 1 card from your hand to the bottom of the deck; create 2 mana rocks.",
       "source": {
         "tab": "Artifact",
         "row": 12
@@ -1600,7 +1586,7 @@
       "nameIsPlaceholder": false,
       "type": "Artifact",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [
         "INDESTRUCTIBLE"
       ],
@@ -1616,7 +1602,7 @@
       "nameIsPlaceholder": false,
       "type": "Artifact",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [],
       "text": "Tap; For each Artifact that equips in your field, your creatures gain +1/1 until the end of the turn.",
       "source": {
@@ -1630,9 +1616,9 @@
       "nameIsPlaceholder": false,
       "type": "Artifact",
       "speed": "spell",
-      "cost": 3,
+      "cost": 2,
       "keywordRefs": [],
-      "text": "Tap pay 3; Equip to target creature. Equipped creature gains Evasive.",
+      "text": "Pay 2; Equip to target creature. Equipped creature gains EVASIVE.",
       "source": {
         "tab": "Artifact",
         "row": 15
@@ -1646,7 +1632,7 @@
       "speed": "spell",
       "cost": 3,
       "keywordRefs": [],
-      "text": "Tap pay 1; Create 1 Corrupted Mana Rock.",
+      "text": "Tap; Create 1 Corrupted Mana Rock.",
       "source": {
         "tab": "Artifact",
         "row": 16
@@ -1660,7 +1646,7 @@
       "speed": "spell",
       "cost": 3,
       "keywordRefs": [],
-      "text": "Tap; Destroy 1 Zombie you control; Create 1 Corrupted Mana Rock",
+      "text": "Tap; Destroy 1 Zombie you control; Create 1 Corrupted Mana Rock and draw 1 card.",
       "source": {
         "tab": "Artifact",
         "row": 17
@@ -1730,9 +1716,9 @@
       "nameIsPlaceholder": false,
       "type": "Artifact",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "keywordRefs": [],
-      "text": "Pay 2 - Become a copy of target creature or artifact until the end of the turn. This card is treated as both an Artifact and a Creature when copying a Creature.",
+      "text": "Pay 2 - Become a copy of target creature or artifact until the end of the turn. This card is treated as both an Artifact and a Creature when copying a Creature. If this card wasn't played this turn, the copy has no summoning sickness.",
       "source": {
         "tab": "Artifact",
         "row": 22
@@ -2041,7 +2027,7 @@
       "type": "Creature",
       "tribe": "Zombie",
       "speed": "spell",
-      "cost": 5,
+      "cost": 4,
       "attack": 3,
       "defense": 4,
       "keywordRefs": [],
@@ -2387,7 +2373,7 @@
       "attack": 0,
       "defense": 3,
       "keywordRefs": [],
-      "text": "END PHASE - for each \"Goblin\" you control that BOOSTED this turn; Select 1 \"Goblin\", it gains a +1/1 counter (3 counters max).",
+      "text": "END PHASE - for each \"Goblin\" you control that BOOSTED this turn; Select 1 \"Goblin\", it gains a +1/1 counter.",
       "source": {
         "tab": "Goblin",
         "row": 20
@@ -2565,7 +2551,7 @@
       "type": "Creature",
       "tribe": "Vampire",
       "speed": "spell",
-      "cost": 4,
+      "cost": 3,
       "attack": 0,
       "defense": 2,
       "keywordRefs": [
@@ -2601,9 +2587,9 @@
       "type": "Creature",
       "tribe": "Vampire",
       "speed": "spell",
-      "cost": 5,
+      "cost": 4,
       "attack": 1,
-      "defense": 5,
+      "defense": 4,
       "keywordRefs": [
         "CLASH"
       ],
@@ -2621,7 +2607,7 @@
       "tribe": "Vampire",
       "speed": "spell",
       "cost": 6,
-      "attack": 3,
+      "attack": 4,
       "defense": 5,
       "keywordRefs": [
         "DMG GAIN",
@@ -2697,7 +2683,7 @@
       "keywordRefs": [
         "FACEOFF"
       ],
-      "text": "FACEOFF. Whenever this creature destroys a creature in combat, target Vampire gains +1/1.",
+      "text": "HASTE, FACEOFF. Whenever this creature destroys a creature in combat, target Vampire gains +1/1.",
       "source": {
         "tab": "Vampire",
         "row": 15
@@ -3333,7 +3319,7 @@
       "attack": 2,
       "defense": 2,
       "keywordRefs": [],
-      "text": "Pay 1 and Tap an artifact you control - Draw 1 card",
+      "text": "Tap an artifact you control - Draw 1 card",
       "source": {
         "tab": "Construct",
         "row": 13
@@ -3441,7 +3427,7 @@
       "keywordRefs": [
         "OFFER"
       ],
-      "text": "Whenever you OFFER, you may draw 1 card.",
+      "text": "Whenever you OFFER or COMMAND, you may draw 1 card.",
       "source": {
         "tab": "Demon",
         "row": 7
@@ -3460,7 +3446,7 @@
       "keywordRefs": [
         "OFFER"
       ],
-      "text": "Whenever you OFFER, this gets a +1/1 counter.",
+      "text": "Whenever you OFFER or COMMAND, this gets a +1/1 counter.",
       "source": {
         "tab": "Demon",
         "row": 8
@@ -4328,6 +4314,12 @@
       "name": "Achilles",
       "text": "DEMIGOD",
       "reason": "Unfinished (no cost/stats)"
+    },
+    {
+      "tab": "Anthem",
+      "row": 9,
+      "name": "Vendor Street",
+      "reason": "Same as Anthem #1 (removed Oct 22, 2026)"
     }
   ]
 }

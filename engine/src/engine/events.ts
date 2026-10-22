@@ -40,7 +40,9 @@ export function emit(s: GameState, ev: GameEvent): void {
       log(s, `${nameOf(s, source)}: ${ab.label}.`);
       runQueue(s, [...ab.effects], ctx);
     } else {
-      s.pendingTriggers.push({ source, controller, label: ab.label, effects: ab.effects, ctx });
+      // Twin Rhythms: your Upkeep effects trigger twice (once more per copy).
+      const times = ev.name === 'upkeep' ? 1 + s.players[controller].field.filter((iid) => s.perms[iid] && (defOf(s, iid).script.statics ?? []).some((x) => x.kind === 'twinUpkeep')).length : 1;
+      for (let i = 0; i < times; i++) s.pendingTriggers.push({ source, controller, label: ab.label, effects: ab.effects, ctx: i === 0 ? ctx : structuredClone(ctx) });
     }
     // Frog Song listens for your creatures' triggered abilities.
     if (ab.on !== 'creatureTriggered' && s.perms[source] && isCreature(s, source)) emit(s, { name: 'creatureTriggered', subject: source, player: controller });

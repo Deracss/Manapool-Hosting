@@ -4,7 +4,7 @@ import type { GameState, PlayerId } from '../types.ts';
 import { emit } from './events.ts';
 import { refillOrbs } from './mana.ts';
 import { openRound } from './stack.ts';
-import { log, nextAlive, player } from './util.ts';
+import { log, nameOf, nextAlive, player } from './util.ts';
 import { drawCards, resolveInfections, returnFaded, untapPerm } from './zones.ts';
 
 export function beginTurn(s: GameState, pid: PlayerId): void {
@@ -21,7 +21,11 @@ export function beginTurn(s: GameState, pid: PlayerId): void {
     p.attackLog = [];
     p.creatureTapAbilities = 0;
     p.discardPlays = 0;
+    p.battled = [];
+    p.unblockedAttacks = 0;
   }
+  // Tombstone marks last until the End Phase of their player's next turn.
+  for (const m of player(s, pid).marked ?? []) m.armed = true;
   for (const perm of Object.values(s.perms)) {
     perm.flags = { boostedThisTurn: false, wasBoostedThisTurn: false, dealtPlayerDamageThisTurn: false, attackedThisTurn: false };
     perm.abilitiesUsed = [];
@@ -61,6 +65,11 @@ export function afterDraw(s: GameState): void {
 export function endMain(s: GameState): void {
   s.phase = 'end';
   for (const p of s.players) p.discardPlays = 0; // Graveyard: "until the End Phase"
+  const ap = player(s, s.active);
+  if (ap.marked?.some((m) => m.armed)) {
+    ap.marked = ap.marked.filter((m) => !m.armed);
+    log(s, `${ap.name}'s Tombstone mark ends.`);
+  }
   returnFaded(s);
   resolveInfections(s, s.active);
   emit(s, { name: 'endPhase', player: s.active });
@@ -71,6 +80,12 @@ export function afterEnd(s: GameState): void {
   for (const perm of Object.values(s.perms)) {
     perm.mods = perm.mods.filter((m) => m.until === 'permanent');
     perm.damage = 0;
+    // Shifting Relic: the copy ends.
+    const c = s.cards[perm.iid];
+    if (c.override?.untilEndOfTurn) {
+      c.override = undefined;
+      log(s, `${nameOf(s, perm.iid)} turns back.`);
+    }
   }
   for (const p of s.players) p.floating = 0;
   beginTurn(s, nextAlive(s, s.active));

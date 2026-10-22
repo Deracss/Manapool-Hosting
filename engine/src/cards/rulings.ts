@@ -40,7 +40,7 @@ export const rulingScripts: Record<string, CardScript> = {
     triggers: [{ label: 'Blocked below 5 life: gain 1 life', on: 'blocked', subject: 'self', condition: { lifeBelow: 5 }, effects: [{ do: 'gainLife', n: 1 }] }],
   },
   'alucard-prince-of-the-night': {
-    keywords: ['FACEOFF'],
+    keywords: ['HASTE', 'FACEOFF'],
     triggers: [
       {
         label: 'Destroyed a creature in combat: a Vampire gets +1/+1',
@@ -215,10 +215,16 @@ export const rulingScripts: Record<string, CardScript> = {
     ],
   },
   'demon-leecher': {
-    triggers: [{ label: 'You OFFERED: you may draw', on: 'offered', condition: { eventPlayerIsYou: true }, effects: [{ do: 'may', prompt: 'Demon Leecher: draw 1 card?', then: [{ do: 'draw', n: 1 }] }] }],
+    triggers: [
+      { label: 'You OFFERED: you may draw', on: 'offered', condition: { eventPlayerIsYou: true }, effects: [{ do: 'may', prompt: 'Demon Leecher: draw 1 card?', then: [{ do: 'draw', n: 1 }] }] },
+      { label: 'You COMMANDED: you may draw', on: 'contract', condition: { and: [{ eventPlayerIsYou: true }, { eventKind: 'command' }] }, effects: [{ do: 'may', prompt: 'Demon Leecher: draw 1 card?', then: [{ do: 'draw', n: 1 }] }] },
+    ],
   },
   'demon-pup': {
-    triggers: [{ label: 'You OFFERED: +1/+1 counter', on: 'offered', condition: { eventPlayerIsYou: true }, effects: [{ do: 'counter', target: 'self', atk: 1, def: 1 }] }],
+    triggers: [
+      { label: 'You OFFERED: +1/+1 counter', on: 'offered', condition: { eventPlayerIsYou: true }, effects: [{ do: 'counter', target: 'self', atk: 1, def: 1 }] },
+      { label: 'You COMMANDED: +1/+1 counter', on: 'contract', condition: { and: [{ eventPlayerIsYou: true }, { eventKind: 'command' }] }, effects: [{ do: 'counter', target: 'self', atk: 1, def: 1 }] },
+    ],
   },
   'demon-pit': {
     triggers: [
@@ -253,7 +259,7 @@ export const rulingScripts: Record<string, CardScript> = {
   },
 
   // ---------- Support cards ----------
-  'counter-the-counter': { targets: [{ kind: 'stackCard', types: ['Spell', 'Incantation'], negaters: true }], resolve: [{ do: 'negate', target: 'target:0' }] },
+  'counter-the-counter': { targets: [{ kind: 'stackCard', types: ['Spell', 'Incantation'], negaters: true }], resolve: [{ do: 'negate', target: 'target:0' }, { do: 'if', cond: { varIs: ['negated', 1] }, then: [{ do: 'draw', n: 1 }] }] },
   'arcane-vanishing': { resolve: [{ do: 'fadeOut', filter: { controller: 'you' } }] },
   anthropomorph: {
     targets: [{ kind: 'creature' }],

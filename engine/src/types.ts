@@ -68,10 +68,13 @@ export interface Filter {
   types?: CardType[]; // any of these types
   keywordRef?: string; // the card's text mentions this keyword (e.g. OFFER)
   atkAbovePrinted?: number; // attack is at least this much above its printed attack
+  statCounters?: boolean; // has +X/+Y counters
+  token?: boolean; // is a token
+  equipment?: boolean; // is an Equipment (a card that equips)
 }
 
 /** Who an effect is for: you (default), a player chosen earlier, or the player the event is about. */
-export type PlayerRef = 'you' | 'eventPlayer' | 'eventTarget' | 'owner' | `pvar:${string}`; // owner = owner of the source card
+export type PlayerRef = 'you' | 'eventPlayer' | 'eventTarget' | 'owner' | `pvar:${string}` | `controllerOf:${Ref}`; // owner = owner of the source card
 
 /** A number in an effect: a constant, a count of matching cards, or a stored variable. */
 export type Num = number | { count: Filter } | { var: string } | { costOf: Ref } | { half: Num } | { souls: true } | { mul: [Num, number] } | { eventN: true };
@@ -111,6 +114,8 @@ export type Condition =
   | { varAtLeast: [string, number] }
   | { eventNMultipleOf: number }
   | { attackTotal: { tribe?: string }; atLeast: number } // total attack (with boosts) of your attackers this turn
+  | { unblockedAttacks: number } // at least this many of your attacks this turn weren't blocked
+  | { varSet: string } // a card was chosen into this variable
   | { and: Condition[] }
   | { not: Condition };
 
@@ -124,6 +129,8 @@ export interface StatOverride {
   type?: CardType;
   scriptFrom?: string | null; // use another card's abilities; null = no abilities
   text?: string;
+  alsoArtifact?: boolean; // Shifting Relic copying a creature: both an Artifact and a Creature
+  untilEndOfTurn?: boolean; // the override ends at the end of the turn
 }
 
 export type Effect =
@@ -154,13 +161,13 @@ export type Effect =
   | { do: 'if'; cond: Condition; then: Effect[]; else?: Effect[] }
   | { do: 'guide'; n: Num } // look at the top N cards; put any on top in any order, the rest on the bottom
   | { do: 'chooseMode'; prompt: string; modes: { label: string; effects: Effect[] }[] }
-  | { do: 'choosePlayer'; as: string; prompt: string; opponentsOnly?: boolean }
+  | { do: 'choosePlayer'; as: string; prompt: string; opponentsOnly?: boolean; battled?: boolean } // battled: only opponents you fought this turn
   | { do: 'destroyAll'; filter: Filter }
   | { do: 'sacrifice'; target: Ref } // destroy a creature you control, even an INDESTRUCTIBLE one
   | { do: 'returnToField'; target: Ref; tapped?: boolean } // from a discard pile onto your field
   | { do: 'toDeckBottom'; target: Ref }
   | { do: 'discardHand'; as: string } // stores how many were discarded
-  | { do: 'loseLife'; n: Num }
+  | { do: 'loseLife'; n: Num; who?: PlayerRef; noDraw?: boolean } // every point of life lost draws a card unless noDraw
   | { do: 'createRock'; n: Num; corrupted?: boolean; who?: PlayerRef }
   | { do: 'coinFlip'; heads: Effect[]; tails: Effect[] }
   | { do: 'override'; target: Ref; set: StatOverride }
@@ -194,7 +201,26 @@ export type Effect =
   | { do: 'ctl'; player: PlayerId } // (internal) switch the acting player
   | { do: 'setP'; as: string; player: PlayerId } // (internal) remember a player
   | { do: 'ask'; player: PlayerId; prompt: string; then: Effect[]; else: Effect[]; offerFrom: PlayerId } // (internal)
-  | { do: 'offerDone' }; // (internal)
+  | { do: 'offerDone' } // (internal)
+  | { do: 'offerOne'; player: PlayerId; prompt: string; gift: Effect[]; denied: Effect[] } // (internal) one opponent's answer
+  | { do: 'finePrint' } // (internal) Fine Print may turn the OFFER into a COMMAND
+  | { do: 'fpUse'; n: number } // (internal) Fine Print ability used this round
+  | { do: 'offerDeniedBy'; player: PlayerId } // (internal) fires "offerDenied"
+  // OFFER to one player: they may pay `cost` mana (a contract); if they don't, `denied` runs.
+  | { do: 'offerTo'; who: PlayerRef; prompt: string; cost: number; denied: Effect[] }
+  | { do: 'moveToDiscard'; target: Ref } // a card from a hand or deck goes to its owner's discard pile
+  | { do: 'bounce'; target: Ref } // a permanent returns to its owner's hand (tokens cease to exist)
+  | { do: 'bounceAll'; filter: Filter }
+  | { do: 'blink'; target: Ref } // the permanent FADES OUT until the End Phase
+  | { do: 'pumpAll'; filter: Filter; atk: Num; def: Num; until: Duration }
+  | { do: 'swapStats'; target: Ref } // attack and defense trade places for good (buffs swap too)
+  | { do: 'becomeCopy'; target: Ref } // Shifting Relic: this card becomes a copy of the target until the end of the turn
+  | { do: 'castCard'; target: Ref } // put the card on the stack as if played (targets chosen now)
+  | { do: 'copyNext' } // Mimicry Magic: your next Spell or Incantation is copied
+  | { do: 'markDiscard'; as: string } // Tombstone: choose a creature in your discard pile to play by paying its cost
+  | { do: 'rainingArrows' } // Raining Arrows' resolution
+  | { do: 'arrowsBoost' } // (internal)
+  | { do: 'arrowsHit' }; // (internal)
 
 export type EventName =
   | 'etb' // subject entered the field
@@ -219,6 +245,8 @@ export type EventName =
   | 'soulsGained' // player gained Souls
   | 'offered' // player made an OFFER
   | 'offerResolved' // player's OFFER finished; n = contracts made
+  | 'offerDenied' // player's OFFER was refused by player `target`
+  | 'cardPlayed' // player played card subject (from hand or discard pile)
   | 'blocked' // subject (an attacker) was blocked
   | 'playerDamaged' // subject damaged player `target` for n (player = subject's controller)
   | 'counterAdded' // subject got a +X/X counter; kind = card id of the source
@@ -262,7 +290,11 @@ export type StaticAbility =
   | { kind: 'clashDouble' } // doubles attack when this creature clashes as attacker
   | { kind: 'extraCharge'; n: number }
   | { kind: 'equipped'; keyword?: Keyword; atk?: number; def?: number } // what the creature this is equipped to gets
-  | { kind: 'equipAsArtifact' } // while equipped, this card is an Artifact, not a Creature (Arsen); // you may charge this many more cards each turn
+  | { kind: 'equipAsArtifact' }
+  | { kind: 'shield' } // Equipment: the equipped creature can't be targeted by your opponents' card effects
+  | { kind: 'tavernBoost' } // the first boost each of your creatures gets in a battle from its own tribe counts for 1 more
+  | { kind: 'spellsAsIncantations' } // Book of Spells
+  | { kind: 'twinUpkeep' } // while equipped, this card is an Artifact, not a Creature (Arsen); // you may charge this many more cards each turn
 
 export type Replacement = { kind: 'extraTokens'; tribe: string; extra: number };
 
@@ -340,6 +372,7 @@ export interface Permanent {
   infectArmed?: boolean; // its controller's next turn has started
   roundUsed?: number[]; // once-per-round abilities used since its controller's turn began
   reconfigured?: boolean; // RECONFIGURE already used this round (resets at the start of its controller's turn)
+  swapped?: boolean; // Confused Knight: attack and defense swapped
 }
 
 export interface Orb {
@@ -376,6 +409,10 @@ export interface Player {
   hitsThisTurn: { iid: Iid; cardId: string }[]; // creatures that damaged an opponent this turn
   attackLog: { cardId: string; atk: number }[]; // attacks this turn, with total attack after boosts
   creatureTapAbilities: number;
+  copyNext?: number; // Mimicry Magic: copies owed to your next Spells/Incantations
+  marked?: { iid: Iid; armed: boolean }[]; // Tombstone: creatures in your discard pile you may play by paying their cost
+  battled?: PlayerId[]; // opponents you were in combat with this turn (Low Kick)
+  unblockedAttacks?: number; // your attacks this turn that weren't blocked (Royal Banquet)
   discardPlays: number; // Graveyard: cards you may still play from your discard pile until the End Phase // your creatures used their own Tap abilities this many times this turn
 }
 

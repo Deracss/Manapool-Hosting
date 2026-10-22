@@ -1,5 +1,5 @@
 import { Card, showDef } from '../components/Card';
-import { getDef } from '../engine';
+import { deckCardIds, getDef } from '../engine';
 import { cardNumber } from '../storage';
 
 export function Menu({ onPlay, onOnline, onBuilder, onRules, onQuit }: { onPlay: () => void; onOnline: () => void; onBuilder: () => void; onRules: () => void; onQuit: () => void }) {
@@ -30,7 +30,7 @@ export function Menu({ onPlay, onOnline, onBuilder, onRules, onQuit }: { onPlay:
             Quit
           </button>
         </nav>
-        <p style={{ fontSize: 14, color: 'var(--faint)' }}>Version 0.3.5 · 243 cards · 5 precons · every precon card playable</p>
+        <p style={{ fontSize: 14, color: 'var(--faint)' }}>Version 0.3.6 · {deckCardIds().length} cards · 5 precons · every precon card playable</p>
       </section>
       <section className="menu-art" aria-hidden="true">
         <div className="ring" style={{ width: 560, height: 560 }} />

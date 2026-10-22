@@ -1,6 +1,6 @@
 // The effect interpreter. Effects run from a flat queue so that a choice can pause and resume them.
 import type { Condition, Effect, EffectCtx, GameState, Iid, Num, PlayerId, PlayerRef, Ref, TargetSpec } from '../types.ts';
-import { hasKeyword, hasTribe, isCreature, keywordsOf, listMatching, matches } from './stats.ts';
+import { attackOf, defenseOf, hasKeyword, hasStatic, hasTribe, isCreature, keywordsOf, listMatching, matches, shieldedFrom, spellsAsIncantations } from './stats.ts';
 import {
   chargeCard,
   createTokens,
@@ -14,6 +14,7 @@ import {
   moveToDeckBottom,
   moveToHand,
   returnFromDiscard,
+  enterField,
   tapPerm,
   untapPerm,
 } from './zones.ts';
@@ -41,6 +42,12 @@ export function resolvePlayer(s: GameState, ref: PlayerRef | undefined, ctx: Eff
   if (ref === 'eventPlayer') return ctx.event?.player ?? null;
   if (ref === 'eventTarget') return ctx.event?.target ?? null;
   if (ref === 'owner') return ctx.source.startsWith('field:') ? Number(ctx.source.slice(6)) : inst(s, ctx.source).owner;
+  if (ref.startsWith('controllerOf:')) {
+    const iid = resolveRef(s, ref.slice(13) as Ref, ctx);
+    if (!iid) return null;
+    const item = s.stack.find((it) => it.kind === 'card' && it.iid === iid);
+    return item ? item.controller : (s.perms[iid]?.controller ?? inst(s, iid).owner);
+  }
   const v = ctx.vars[`p:${ref.slice(5)}`];
   return typeof v === 'number' ? v : null;
 }
@@ -100,6 +107,8 @@ export function evalCondition(s: GameState, c: Condition, ctx: EffectCtx): boole
   if ('eventNIs' in c) return (ctx.event?.n ?? 0) === c.eventNIs;
   if ('varAtLeast' in c) return Number(ctx.vars[c.varAtLeast[0]] ?? 0) >= c.varAtLeast[1];
   if ('eventNMultipleOf' in c) return (ctx.event?.n ?? 0) > 0 && (ctx.event?.n ?? 0) % c.eventNMultipleOf === 0;
+  if ('varSet' in c) return typeof ctx.vars[c.varSet] === 'string';
+  if ('unblockedAttacks' in c) return (player(s, ctx.controller).unblockedAttacks ?? 0) >= c.unblockedAttacks;
   if ('attackTotal' in c) {
     const tribe = c.attackTotal.tribe;
     const total = player(s, ctx.controller).attackLog.filter((a) => !tribe || getDef(a.cardId).tribe === tribe).reduce((sum, a) => sum + a.atk, 0);
@@ -144,13 +153,17 @@ export function clashInProgress(s: GameState): boolean {
 export function targetOptions(s: GameState, spec: TargetSpec, controller: PlayerId, source?: string): Iid[] {
   if (spec.kind === 'stackCard') {
     return s.stack.flatMap((it) => {
-      if (it.kind !== 'card' || it.iid === source || !spec.types.includes(defOf(s, it.iid).type)) return [];
+      if (it.kind !== 'card' || it.iid === source) return [];
+      const type = defOf(s, it.iid).type;
+      // Book of Spells: its controller's Spells count as Incantations too.
+      const asIncantation = type === 'Spell' && spec.types.includes('Incantation') && spellsAsIncantations(s, it.controller);
+      if (!spec.types.includes(type) && !asIncantation) return [];
       if (spec.negaters && !(defOf(s, it.iid).script.resolve ?? []).some((x) => x.do === 'negate')) return [];
       return [it.iid];
     });
   }
   const filter = spec.kind === 'creature' ? { ...(spec.filter ?? {}), type: 'Creature' as const } : spec.filter;
-  return Object.keys(s.perms).filter((iid) => matches(s, iid, filter, controller, source));
+  return Object.keys(s.perms).filter((iid) => matches(s, iid, filter, controller, source) && !shieldedFrom(s, iid, controller));
 }
 
 function addCounter(s: GameState, iid: Iid, atk: number, def: number, from: string): void {
@@ -282,11 +295,12 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
           s.stack.splice(idx, 1);
           if (!inst(s, iid).isToken) player(s, inst(s, iid).owner).discard.push(iid);
           log(s, `${nameOf(s, iid)} is negated.`);
+          ctx.vars.negated = 1;
         }
         break;
       }
       case 'choose': {
-        const options = listMatching(s, e.from, ctx.controller, ctx.source);
+        const options = listMatching(s, e.from, ctx.controller, ctx.source).filter((iid) => (e.from.zone ?? 'field') !== 'field' || !shieldedFrom(s, iid, ctx.controller));
         if (options.length === 0) {
           ctx.vars[e.as] = null;
           if (e.from.zone === 'deck') log(s, `${pname(s, ctx.controller)} finds nothing.`);
@@ -301,8 +315,13 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
         return 'paused';
       }
       case 'choosePlayer': {
-        const options = alive(s).filter((p) => !e.opponentsOnly || p !== ctx.controller);
-        if (!options.length) break;
+        const battled = player(s, ctx.controller).battled ?? [];
+        const options = alive(s).filter((p) => (!e.opponentsOnly || p !== ctx.controller) && (!e.battled || (p !== ctx.controller && battled.includes(p))));
+        if (!options.length) {
+          if (e.battled) log(s, `${pname(s, ctx.controller)} hasn't fought an opponent this turn.`);
+          delete ctx.vars[`p:${e.as}`];
+          break;
+        }
         if (options.length === 1) {
           ctx.vars[`p:${e.as}`] = options[0];
           break;
@@ -348,9 +367,15 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
         log(s, `${p.name} discards their hand (${n} card${n === 1 ? '' : 's'}).`);
         break;
       }
-      case 'loseLife':
-        loseLife(s, ctx.controller, evalNum(s, e.n, ctx));
+      case 'loseLife': {
+        const who = resolvePlayer(s, e.who, ctx);
+        if (who === null || player(s, who).eliminated) break;
+        const n = evalNum(s, e.n, ctx);
+        loseLife(s, who, n);
+        // Every point of life lost draws a card, unless the card says otherwise.
+        if (!e.noDraw && n > 0 && player(s, who).life > 0) drawCards(s, who, n);
         break;
+      }
       case 'coinFlip': {
         const heads = random(s) < 0.5;
         log(s, `${pname(s, ctx.controller)} flips a coin: ${heads ? 'heads' : 'tails'}.`);
@@ -456,7 +481,7 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
       }
       case 'chooseCreatureOf': {
         const who = resolvePlayer(s, e.who, ctx);
-        const options = who === null ? [] : player(s, who).field.filter((iid) => isCreature(s, iid));
+        const options = who === null ? [] : player(s, who).field.filter((iid) => isCreature(s, iid) && !shieldedFrom(s, iid, ctx.controller));
         if (!options.length) {
           ctx.vars[e.as] = null;
           break;
@@ -485,21 +510,53 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
         const them = s.players.filter((p) => p.id !== me && !p.eliminated).map((p) => p.id);
         log(s, `${pname(s, me)} OFFERS: ${e.prompt}`);
         emit(s, { name: 'offered', player: me });
-        const steps: Effect[] = [{ do: 'setVar', as: 'contracts', n: 0 }, { do: 'setP', as: 'offerer', player: me }];
-        for (const o of them) {
-          steps.push(
-            { do: 'setP', as: 'o', player: o },
-            {
-              do: 'ask',
-              player: o,
-              offerFrom: me,
-              prompt: `${pname(s, me)} OFFERS you: ${e.prompt} Accept? (${pname(s, me)} gains 1 Soul.)`,
-              then: [{ do: 'ctl', player: o }, ...e.gift, { do: 'ctl', player: me }, { do: 'contract', kind: 'offer', who: 'pvar:o' }, { do: 'incVar', as: 'contracts' }],
-              else: [...(e.denied ?? [])],
-            },
-          );
-        }
+        const steps: Effect[] = [{ do: 'setVar', as: 'contracts', n: 0 }, { do: 'setP', as: 'offerer', player: me }, { do: 'finePrint' }];
+        for (const o of them) steps.push({ do: 'setP', as: 'o', player: o }, { do: 'offerOne', player: o, prompt: e.prompt, gift: e.gift, denied: e.denied ?? [] });
         steps.push({ do: 'offerDone' }, ...(e.after ?? []));
+        queue.unshift(...steps);
+        break;
+      }
+      case 'offerOne': {
+        const me = ctx.controller;
+        const o = e.player;
+        if (player(s, o).eliminated) break;
+        // Fine Print: the OFFER is a COMMAND for this player.
+        if (ctx.vars.fpAll === 1 || ctx.vars['p:fpOne'] === o) {
+          log(s, `Fine Print: the OFFER is a COMMAND for ${pname(s, o)}.`);
+          queue.unshift({ do: 'ctl', player: o }, ...e.gift, { do: 'ctl', player: me }, { do: 'contract', kind: 'command', who: 'pvar:o' }, { do: 'incVar', as: 'contracts' });
+          break;
+        }
+        queue.unshift({
+          do: 'ask',
+          player: o,
+          offerFrom: me,
+          prompt: `${pname(s, me)} OFFERS you: ${e.prompt} Accept? (${pname(s, me)} gains 1 Soul.)`,
+          then: [{ do: 'ctl', player: o }, ...e.gift, { do: 'ctl', player: me }, { do: 'contract', kind: 'offer', who: 'pvar:o' }, { do: 'incVar', as: 'contracts' }],
+          else: [...e.denied, { do: 'offerDeniedBy', player: o }],
+        });
+        break;
+      }
+      case 'finePrint': {
+        // Fine Print (once per round each): at 10 Souls, the OFFER is a COMMAND for one player; at 20, for everyone.
+        const me = ctx.controller;
+        const fp = player(s, me).field.find((iid) => s.cards[iid].cardId === 'fine-print');
+        if (!fp) break;
+        const used = (s.perms[fp].roundUsed ??= []);
+        const souls = player(s, me).souls;
+        const opps = alive(s).filter((p) => p !== me);
+        if (opps.length === 0) break;
+        const steps: Effect[] = [];
+        if (souls >= 20 && !used.includes(101)) {
+          steps.push({ do: 'may', prompt: 'Fine Print: make this OFFER a COMMAND for every player?', then: [{ do: 'setVar', as: 'fpAll', n: 1 }, { do: 'fpUse', n: 101 }] });
+        }
+        if (souls >= 10 && !used.includes(100)) {
+          steps.push({
+            do: 'if',
+            cond: { not: { varIs: ['fpAll', 1] } },
+            then: [{ do: 'may', prompt: 'Fine Print: make this OFFER a COMMAND for one player?', then: [{ do: 'choosePlayer', as: 'fpOne', prompt: 'Fine Print: COMMAND which player?', opponentsOnly: true }, { do: 'fpUse', n: 100 }] }],
+          });
+        }
+        ctx.vars.fpSource = fp;
         queue.unshift(...steps);
         break;
       }
@@ -514,7 +571,7 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
       }
       case 'asPlayer': {
         const who = resolvePlayer(s, e.who, ctx);
-        if (who === null) break;
+        if (who === null || player(s, who).eliminated) break;
         queue.unshift({ do: 'ctl', player: who }, ...e.effects, { do: 'ctl', player: ctx.controller });
         break;
       }
@@ -584,6 +641,7 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
         queue.unshift(...(evalCondition(s, e.cond, ctx) ? e.then : (e.else ?? [])));
         break;
       case 'may': {
+        if (player(s, ctx.controller).eliminated) break;
         const cost = e.cost === undefined ? 0 : evalNum(s, e.cost, ctx);
         if (cost > availableMana(s, ctx.controller)) {
           log(s, `${pname(s, ctx.controller)} can't pay ${cost} mana, so nothing happens.`);
@@ -654,6 +712,239 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
         log(s, `A copy of ${nameOf(s, e.iid)} goes on the stack${target ? ` targeting ${nameOf(s, target)}` : ''}.`);
         break;
       }
+      case 'fpUse': {
+        const fp = ctx.vars.fpSource;
+        if (typeof fp === 'string' && s.perms[fp]) (s.perms[fp].roundUsed ??= []).push(e.n);
+        break;
+      }
+      case 'offerDeniedBy':
+        emit(s, { name: 'offerDenied', player: ctx.controller, target: e.player });
+        break;
+      case 'offerTo': {
+        const me = ctx.controller;
+        const who = resolvePlayer(s, e.who, ctx);
+        if (who === null || who === me || player(s, who).eliminated) {
+          queue.unshift(...e.denied);
+          break;
+        }
+        log(s, `${pname(s, me)} OFFERS ${pname(s, who)}: ${e.prompt}`);
+        emit(s, { name: 'offered', player: me });
+        ctx.vars['p:o'] = who;
+        if (availableMana(s, who) < e.cost) {
+          log(s, `${pname(s, who)} can't pay ${e.cost} mana.`);
+          queue.unshift(...e.denied, { do: 'offerDeniedBy', player: who });
+          break;
+        }
+        s.decision = {
+          kind: 'confirm',
+          player: who,
+          prompt: `${pname(s, me)} OFFERS you: ${e.prompt} Pay ${e.cost} mana? (${pname(s, me)} gains 1 Soul.)`,
+          cost: e.cost,
+          then: [{ do: 'contract', kind: 'offer', who: 'pvar:o' }],
+          else: [...e.denied, { do: 'offerDeniedBy', player: who }],
+          offerFrom: me,
+          queue,
+          ctx,
+        };
+        return 'paused';
+      }
+      case 'moveToDiscard': {
+        const iid = resolveRef(s, e.target, ctx);
+        if (!iid) break;
+        const c = inst(s, iid);
+        const p = player(s, c.owner);
+        if (s.perms[iid]) {
+          leaveField(s, iid);
+          break;
+        }
+        for (const zone of ['deck', 'hand'] as const) p[zone] = p[zone].filter((x) => x !== iid);
+        p.discard.push(iid);
+        log(s, `${nameOf(s, iid)} goes to ${p.name}'s discard pile.`);
+        break;
+      }
+      case 'bounce': {
+        const iid = resolveRef(s, e.target, ctx);
+        if (iid && s.perms[iid]) bounceOne(s, iid);
+        break;
+      }
+      case 'bounceAll': {
+        const all = listMatching(s, { ...e.filter, zone: 'field' }, ctx.controller, ctx.source);
+        log(s, `${all.length} card${all.length === 1 ? '' : 's'} return to their owners' hands.`);
+        for (const iid of all) if (s.perms[iid]) bounceOne(s, iid);
+        break;
+      }
+      case 'blink': {
+        const iid = resolveRef(s, e.target, ctx);
+        if (!iid || !s.perms[iid]) break;
+        const name = nameOf(s, iid);
+        fadeOut(s, iid);
+        log(s, `${name} leaves the field until the End Phase.`);
+        break;
+      }
+      case 'pumpAll': {
+        const atk = evalNum(s, e.atk, ctx);
+        const def = evalNum(s, e.def, ctx);
+        const all = listMatching(s, { ...e.filter, zone: 'field' }, ctx.controller, ctx.source);
+        for (const iid of all) s.perms[iid].mods.push({ atk, def, until: e.until });
+        log(s, `${all.length} creature${all.length === 1 ? '' : 's'} get +${atk}/+${def}${e.until === 'permanent' ? '' : ` until the end of ${e.until}`}.`);
+        break;
+      }
+      case 'swapStats': {
+        const iid = resolveRef(s, e.target, ctx);
+        const perm = iid ? s.perms[iid] : undefined;
+        if (!iid || !perm || !isCreature(s, iid)) break;
+        perm.swapped = !perm.swapped;
+        log(s, `${nameOf(s, iid)}'s attack and defense switch (now ${attackOf(s, iid)}/${defenseOf(s, iid)}).`);
+        break;
+      }
+      case 'becomeCopy': {
+        const iid = resolveRef(s, e.target, ctx);
+        const me = ctx.source;
+        if (!iid || !s.perms[iid] || !s.perms[me]) break;
+        const d = defOf(s, iid);
+        const src = s.cards[iid].override?.scriptFrom;
+        const creature = isCreature(s, iid);
+        s.cards[me].override = {
+          name: d.name,
+          type: creature ? 'Creature' : d.type,
+          tribe: d.tribe,
+          attack: typeof d.attack === 'number' ? d.attack : creature ? attackOf(s, iid) : undefined,
+          defense: typeof d.defense === 'number' ? d.defense : creature ? defenseOf(s, iid) : undefined,
+          scriptFrom: src === undefined ? s.cards[iid].cardId : src,
+          text: d.text,
+          alsoArtifact: true,
+          untilEndOfTurn: true,
+        };
+        // Not played this turn: the copy has no summoning sickness.
+        if (s.perms[me].enteredTurn !== s.turn) s.perms[me].sick = false;
+        log(s, `Shifting Relic becomes a copy of ${d.name} until the end of the turn.`);
+        break;
+      }
+      case 'castCard': {
+        const iid = resolveRef(s, e.target, ctx);
+        if (!iid) break;
+        const c = inst(s, iid);
+        const p = player(s, c.owner);
+        if (!p.discard.includes(iid) && !p.hand.includes(iid)) break;
+        p.discard = p.discard.filter((x) => x !== iid);
+        p.hand = p.hand.filter((x) => x !== iid);
+        const d = defOf(s, iid);
+        log(s, `${pname(s, ctx.controller)} plays ${d.name}.`);
+        emit(s, { name: 'cardPlayed', subject: iid, player: ctx.controller });
+        const spec = d.script.targets?.[0];
+        if (!spec) {
+          queue.unshift({ do: 'stackCopy', iid });
+          break;
+        }
+        const options = targetOptions(s, spec, ctx.controller, iid);
+        if (!options.length) {
+          log(s, `${d.name} has no legal target, so it goes back to the discard pile.`);
+          p.discard.push(iid);
+          break;
+        }
+        queue.unshift({ do: 'chooseFrom', options, as: 'castTarget', prompt: `Choose a target for ${d.name}` }, { do: 'stackCopy', iid, targetVar: 'castTarget' });
+        break;
+      }
+      case 'copyNext': {
+        const p = player(s, ctx.controller);
+        p.copyNext = (p.copyNext ?? 0) + 1;
+        log(s, `${p.name}'s next Spell or Incantation will be copied.`);
+        break;
+      }
+      case 'markDiscard': {
+        const id = ctx.vars[e.as];
+        const p = player(s, ctx.controller);
+        if (typeof id !== 'string' || !p.discard.includes(id)) break;
+        (p.marked ??= []).push({ iid: id, armed: false });
+        log(s, `${p.name} marks ${nameOf(s, id)}: until their next End Phase they may play it from the discard pile by paying its cost.`);
+        break;
+      }
+      case 'rainingArrows': {
+        // X = the total attack of your creatures. A creature takes X damage; a player may block and boost.
+        const me = ctx.controller;
+        const x = player(s, me).field.filter((iid) => isCreature(s, iid)).reduce((n, iid) => n + Math.max(0, attackOf(s, iid)), 0);
+        ctx.vars.x = x;
+        log(s, `Raining Arrows: X = ${x}${x > 6 ? ' (CRITICAL)' : ''}.`);
+        queue.unshift({
+          do: 'chooseMode',
+          prompt: `Raining Arrows (X = ${x}): target a creature or a player?`,
+          modes: [
+            {
+              label: 'A creature',
+              effects: [
+                { do: 'choose', from: { zone: 'field', type: 'Creature', controller: 'any' }, as: 'arrowC', prompt: `Raining Arrows: choose a creature to take ${x} damage` },
+                { do: 'damage', target: 'var:arrowC', n: { var: 'x' } },
+              ],
+            },
+            {
+              label: 'A player',
+              effects: [
+                { do: 'choosePlayer', as: 'arrowP', prompt: 'Raining Arrows: choose a player', opponentsOnly: true },
+                {
+                  do: 'asPlayer',
+                  who: 'pvar:arrowP',
+                  effects: [{ do: 'choose', from: { zone: 'field', type: 'Creature', controller: 'you', untapped: true }, as: 'arrowBlock', optional: true, prompt: `Raining Arrows (${x}${x > 6 ? ', CRITICAL' : ''}) is coming at you: block with a creature?` }],
+                },
+                { do: 'arrowsBoost' },
+                { do: 'arrowsHit' },
+              ],
+            },
+          ],
+        });
+        break;
+      }
+      case 'arrowsBoost': {
+        // The blocking player may boost the block (+1 defense per creature, tapped), one creature at a time.
+        const blk = ctx.vars.arrowBlock;
+        const who = ctx.vars['p:arrowP'];
+        if (typeof blk !== 'string' || typeof who !== 'number' || !s.perms[blk]) break;
+        if (ctx.vars.arrowBlockTapped !== 1) {
+          ctx.vars.arrowBlockTapped = 1;
+          log(s, `${pname(s, who)} blocks Raining Arrows with ${nameOf(s, blk)}.`);
+          tapPerm(s, blk);
+        }
+        const last = ctx.vars.arrowBooster;
+        if (typeof last === 'string' && s.perms[last] && !s.perms[last].tapped) {
+          tapPerm(s, last);
+          ctx.vars.arrowBoosts = Number(ctx.vars.arrowBoosts ?? 0) + 1;
+          log(s, `${nameOf(s, last)} boosts the block.`);
+        }
+        if (last === null) break; // they stopped boosting
+        ctx.vars.arrowBooster = null;
+        const more = player(s, who).field.some((iid) => iid !== blk && isCreature(s, iid) && !s.perms[iid].tapped);
+        if (!more) break;
+        queue.unshift(
+          {
+            do: 'asPlayer',
+            who: 'pvar:arrowP',
+            effects: [{ do: 'choose', from: { zone: 'field', type: 'Creature', controller: 'you', untapped: true }, as: 'arrowBooster', optional: true, prompt: 'Boost your block (+1 defense)? Choose a creature, or skip.' }],
+          },
+          { do: 'arrowsBoost' },
+        );
+        break;
+      }
+      case 'arrowsHit': {
+        const who = ctx.vars['p:arrowP'];
+        const x = Number(ctx.vars.x ?? 0);
+        if (typeof who !== 'number' || player(s, who).eliminated) break;
+        const critical = x > 6;
+        const blk = ctx.vars.arrowBlock;
+        const lose = (n: number) => {
+          loseLife(s, who, n);
+          if (critical) log(s, `CRITICAL: ${pname(s, who)} does not draw.`);
+          else if (player(s, who).life > 0) drawCards(s, who, n);
+        };
+        if (typeof blk === 'string' && s.perms[blk]) {
+          const def = defenseOf(s, blk) + Number(ctx.vars.arrowBoosts ?? 0);
+          log(s, `Raining Arrows: ${x} against ${nameOf(s, blk)}'s defense of ${def}.`);
+          if (x >= def) destroy(s, blk, 'destroyed by Raining Arrows');
+          if (x > def) lose(1);
+          else if (x < def) log(s, 'The block holds.');
+        } else if (x > 0) {
+          lose(x);
+        }
+        break;
+      }
       case 'reveal': {
         const iid = resolveRef(s, e.target, ctx);
         if (iid) log(s, `${pname(s, ctx.controller)} reveals ${nameOf(s, iid)}.`);
@@ -662,4 +953,16 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
     }
   }
   return 'done';
+}
+
+/** A permanent goes back to its owner's hand; a token simply ceases to exist. */
+function bounceOne(s: GameState, iid: Iid): void {
+  const name = nameOf(s, iid);
+  if (inst(s, iid).isToken) {
+    leaveField(s, iid, 'none');
+    log(s, `${name} (a token) leaves the field and ceases to exist.`);
+    return;
+  }
+  moveToHand(s, iid, false);
+  log(s, `${name} returns to its owner's hand.`);
 }

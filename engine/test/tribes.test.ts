@@ -164,7 +164,7 @@ test('Tombstone: a creature coming back from a discard pile makes a Mana Rock; R
   const theirs = put(s, 1, 'Goblin Elder');
   s = settle(play(s, 0, 'Fireball', [theirs]));
   s.players[0].rocks = 0;
-  s = settle(play(s, 0, 'Reanimation', [], 4), { choose: (d) => (d.options.includes(theirs) ? theirs : d.options[0]) });
+  s = settle(play(s, 0, 'Reanimation', [], 3), { choose: (d) => (d.options.includes(theirs) ? theirs : d.options[0]) });
   assert.equal(s.perms[theirs].controller, 0);
   assert.equal(s.players[0].rocks, 1, 'the Tombstone Rock');
 });
@@ -293,7 +293,7 @@ test("Machinist's Reservoir collects counters from your other Artifacts tapping"
 test("Artificer's Insight: GUIDE 3, draw, and a Mana Rock if you drew an Artifact", () => {
   let s = setup();
   toDeckTop(s, 0, 'Mana Tree');
-  s = settle(play(s, 0, "Artificer's Insight", [], 3), { confirm: true });
+  s = settle(play(s, 0, "Artificer's Insight", [], 2), { confirm: true });
   assert.equal(s.players[0].rocks, 1);
 });
 

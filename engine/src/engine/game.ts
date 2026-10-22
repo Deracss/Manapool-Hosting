@@ -5,11 +5,11 @@ import type { Action, GameConfig, GameState, Iid, PaySource, Player, PlayerId, S
 import { RulesError } from '../types.ts';
 import { emit } from './events.ts';
 import { applyAttackBoost, applyDefenseBoost, chooseBlocker, declareAttack } from './combat.ts';
-import { evalCondition, targetOptions } from './effects.ts';
+import { evalCondition, runQueue, targetOptions } from './effects.ts';
 import { payMana } from './mana.ts';
 import type { PayMode } from './mana.ts';
 import { addToStack, continueAfterChoice, continueAfterChoosePlayer, continueAfterConfirm, continueAfterGuide, continueAfterMode, openRound, passPriority } from './stack.ts';
-import { activatedOf, handAbilitiesOf, artifactsPayForArtifacts, chargesAllowed, costReductionFor, hasKeyword, isArtifact, isCreature } from './stats.ts';
+import { activatedOf, handAbilitiesOf, artifactsPayForArtifacts, chargesAllowed, costReductionFor, hasKeyword, isArtifact, isCreature, spellsAsIncantations } from './stats.ts';
 import { beginTurn } from './turns.ts';
 import { alive, defOf, fail, log, nameOf, newInstance, nextAlive, player, pname, shuffle } from './util.ts';
 import { chargeCard, checkState, destroy, drawCards, tapPerm, untapPerm } from './zones.ts';
@@ -234,13 +234,15 @@ function play(s: GameState, pid: PlayerId, card: Iid, targets: string[], pay?: P
   if (!p.hand.includes(card) && !fromDiscard) fail('That card is not in your hand.');
   const d = defOf(s, card);
   let mode: PayMode = 'normal';
+  const mark = fromDiscard ? (p.marked ?? []).find((m) => m.iid === card) : undefined;
   if (fromDiscard) {
-    if (p.discardPlays > 0) mode = 'any';
+    if (mark) mode = 'any'; // Tombstone: pay its cost
+    else if (p.discardPlays > 0) mode = 'any';
     else if (isCreature(s, card)) mode = 'corruptedOnly';
     else fail('Only creatures can be played from your discard pile (paid with Corrupted Mana).');
   }
   if (d.type === 'Field' || d.type === 'Token' || d.type === 'Mana Token') fail(`${d.name} can't be played.`);
-  const incantationSpeed = d.type === 'Incantation' || d.speed === 'incantation' || hasKeyword(s, card, 'FLASH');
+  const incantationSpeed = d.type === 'Incantation' || d.speed === 'incantation' || hasKeyword(s, card, 'FLASH') || (d.type === 'Spell' && spellsAsIncantations(s, pid));
   if (incantationSpeed ? !canActAtIncantationSpeed(s, pid) : !isFreeMain(s, pid)) {
     fail(incantationSpeed ? 'You do not have priority.' : `${d.name} can only be played during your own Main phase with nothing on the stack.`);
   }
@@ -251,7 +253,8 @@ function play(s: GameState, pid: PlayerId, card: Iid, targets: string[], pay?: P
   checkTargets(s, d.script.targets ?? [], targets, pid, card);
   const cost = costOf(s, pid, card);
   payMana(s, pid, cost, pay, isArtifact(s, card) && artifactsPayForArtifacts(s, pid), mode);
-  if (fromDiscard && mode === 'any') p.discardPlays--;
+  if (mark) p.marked = (p.marked ?? []).filter((m) => m !== mark);
+  else if (fromDiscard && mode === 'any') p.discardPlays--;
   const p1 = player(s, pid);
   for (const t of [d.type, ...(isArtifact(s, card) ? ['Artifact'] : []), ...(isCreature(s, card) ? ['Creature'] : [])]) if (!p1.typesPlayedThisTurn.includes(t)) p1.typesPlayedThisTurn.push(t);
   // A used one-shot discount (Gravebound Martyr) is spent.
@@ -269,6 +272,14 @@ function play(s: GameState, pid: PlayerId, card: Iid, targets: string[], pay?: P
     if (spec.sacrifice && s.perms[targets[i]]) destroy(s, targets[i], 'sacrificed', true);
   });
   addToStack(s, item, pid);
+  emit(s, { name: 'cardPlayed', subject: card, player: pid });
+  // Mimicry Magic: your next Spell or Incantation is copied (you may choose new targets).
+  const pm = player(s, pid);
+  if ((pm.copyNext ?? 0) > 0 && (d.type === 'Spell' || d.type === 'Incantation')) {
+    pm.copyNext! -= 1;
+    log(s, `Mimicry Magic copies ${d.name}.`);
+    runQueue(s, [{ do: 'copyToken', target: 'self' }], { source: card, controller: pid, targets: [], vars: {} });
+  }
 }
 
 function checkTargets(s: GameState, specs: TargetSpec[], targets: string[], pid: PlayerId, card: Iid): void {

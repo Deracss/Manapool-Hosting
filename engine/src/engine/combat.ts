@@ -3,7 +3,7 @@
 // Boosts go to a creature: the attacker, or the defending creature (blocker or FACEOFF target).
 import type { GameState, Iid, PlayerId } from '../types.ts';
 import { emit } from './events.ts';
-import { attackOf, boostValue, defenseOf, hasKeyword, hasStatic, isCreature } from './stats.ts';
+import { attackBoostTotal, attackOf, defenseBoostTotal, defenseOf, hasKeyword, hasStatic, isCreature } from './stats.ts';
 import { openRound } from './stack.ts';
 import { fail, log, nameOf, onField, player, pname } from './util.ts';
 import { checkState, destroy, drawCards, loseLife, tapPerm } from './zones.ts';
@@ -29,6 +29,11 @@ export function declareAttack(s: GameState, pid: PlayerId, attacker: Iid, target
   const p = player(s, pid);
   p.attacksThisTurn++;
   perm.flags.attackedThisTurn = true;
+  // Low Kick: both players fought each other this turn.
+  for (const [a, b] of [[pid, target], [target, pid]]) {
+    const q = player(s, a);
+    if (!(q.battled ??= []).includes(b)) q.battled.push(b);
+  }
   s.combat = {
     attacker,
     attackerController: pid,
@@ -153,9 +158,9 @@ export function resolveCombat(s: GameState): void {
   const defending = onField(s, c.blocker) ? c.blocker : onField(s, c.targetCreature) ? c.targetCreature : null;
   const clash = !!defending;
   const liveAtkBoosters = c.atkBoosters.filter((b) => onField(s, b));
-  let atk = attackOf(s, c.attacker) + liveAtkBoosters.reduce((sum, b) => sum + boostValue(s, b), 0);
+  let atk = attackOf(s, c.attacker) + attackBoostTotal(s, c.attacker, c.atkBoosters);
   if (clash && hasStatic(s, c.attacker, 'clashDouble')) atk *= 2;
-  const def = (defending ? defenseOf(s, defending) : 0) + c.defBoosters.filter((b) => onField(s, b)).length;
+  const def = (defending ? defenseOf(s, defending) + defenseBoostTotal(s, defending, c.defBoosters) : 0);
   const critical = hasKeyword(s, c.attacker, 'CRITICAL') || liveAtkBoosters.some((b) => hasKeyword(s, b, 'CRITICAL BOOST'));
   player(s, c.attackerController).attackLog.push({ cardId: s.cards[c.attacker].cardId, atk });
   log(s, `Combat: ${nameOf(s, c.attacker)} attacks with ${atk} against ${defending ? `${nameOf(s, defending)}'s` : 'a'} defense of ${def}.`);
@@ -171,12 +176,14 @@ export function resolveCombat(s: GameState): void {
     const ap = player(s, c.attackerController);
     ap.hitsThisTurn.push({ iid: c.attacker, cardId: s.cards[c.attacker].cardId });
     s.perms[c.attacker].flags.dealtPlayerDamageThisTurn = true;
+    // Every point of life lost draws a card (CRITICAL: none).
     if (critical) log(s, `CRITICAL: ${pname(s, c.defender)} does not draw.`);
-    else drawCards(s, c.defender, 1);
+    else drawCards(s, c.defender, lost);
     emit(s, { name: 'playerDamaged', subject: c.attacker, player: c.attackerController, target: c.defender, n: lost });
   } else if (atk < def) {
     log(s, 'The attack is stopped.');
   }
+  if (!c.blocker) { const ap = player(s, c.attackerController); ap.unblockedAttacks = (ap.unblockedAttacks ?? 0) + 1; }
   emit(s, { name: 'combatResult', subject: c.attacker, player: c.attackerController, target: c.defender, kind: c.blocker ? 'blocked' : 'unblocked' });
 
   // DMG GAIN: a creature that survives a clash gets +1/+1.

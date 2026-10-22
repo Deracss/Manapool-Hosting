@@ -2,7 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { ME, setSeat } from '../me';
 import type { MouseEvent } from 'react';
 import { Card, showDef, showInGame } from '../components/Card';
-import { attackOf, boostValue, keywordsOf, botAction, cardIdByName, chargesAllowed, createGame, defenseOf, getDef, hasKeyword, hasStatic, isCreature, newInstance, whoMustAct } from '../engine';
+import { attackOf, attackBoostTotal, boostValue, defenseBoostTotal, keywordsOf, botAction, cardIdByName, chargesAllowed, createGame, defenseOf, getDef, hasKeyword, hasStatic, isCreature, newInstance, whoMustAct } from '../engine';
 import { setHovered } from '../hover';
 import type { Action, GameState, Iid, PlayerId } from '../engine';
 import { fieldOptions, firstCombo, handOptions, nothingToRespondWith, targetPrompts, tryApply } from '../legal';
@@ -363,7 +363,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   }, [s]);
 
   const discardPlayable = useMemo(() => {
-    if (!(freeMain || myPriority) || (!me.corruptedRocks && !me.discardPlays)) return 0;
+    if (!(freeMain || myPriority) || (!me.corruptedRocks && !me.discardPlays && !me.marked?.length)) return 0;
     return me.discard.filter((c) => handOptions(s, ME, c).play.legal).length;
   }, [s]);
 
@@ -523,11 +523,17 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
       const gain = atkSide ? boostValue(s, iid) : 1;
       if (picks.includes(iid)) return { text: `+${gain} chosen`, tone: 'gold' };
       if (!defending) return { text: `+${gain} ATK`, tone: 'gold' };
-      const atk = attackOf(s, c.attacker) + (atkSide ? picks : c.atkBoosters).filter((b) => s.perms[b]).reduce((n, b) => n + boostValue(s, b), 0);
-      const def = defenseOf(s, defending) + (atkSide ? 0 : picks.length);
-      if (picks.includes(iid)) return { text: `+${gain} chosen`, tone: 'gold' };
-      if (atkSide) return atk + gain >= def ? { text: `+${gain} · wins the clash`, tone: 'green' } : { text: `+${gain} · ${def - atk - gain} more needed`, tone: 'grey' };
-      return def + 1 > atk ? { text: '+1 DEF · survives', tone: 'green' } : { text: `+1 DEF · ${atk - def} more needed`, tone: 'grey' };
+      // Totals with this creature added (Tavern can make a booster count for more).
+      const atkBase = attackOf(s, c.attacker);
+      const defBase = defenseOf(s, defending);
+      if (atkSide) {
+        const atk = atkBase + attackBoostTotal(s, c.attacker, [...picks, iid]);
+        const def = defBase + defenseBoostTotal(s, defending, c.defBoosters);
+        return atk >= def ? { text: `+${gain} · wins the clash`, tone: 'green' } : { text: `+${gain} · ${def - atk} more needed`, tone: 'grey' };
+      }
+      const atk = atkBase + attackBoostTotal(s, c.attacker, c.atkBoosters);
+      const def = defBase + defenseBoostTotal(s, defending, [...picks, iid]);
+      return def > atk ? { text: '+1 DEF · survives', tone: 'green' } : { text: `+1 DEF · ${atk - def + 1} more needed`, tone: 'grey' };
     }
     // Something on the stack is about to change this card.
     if (spot && s.perms[iid] && (topSet.has(iid) || s.perms[iid].controller === ME)) {
@@ -887,9 +893,9 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     const c = s.combat;
     if (!c || !s.perms[c.attacker]) return null;
     const defending = c.blocker && s.perms[c.blocker] ? c.blocker : c.targetCreature && s.perms[c.targetCreature] ? c.targetCreature : null;
-    let atk = attackOf(s, c.attacker) + c.atkBoosters.filter((b) => s.perms[b]).reduce((n, b) => n + boostValue(s, b), 0);
+    let atk = attackOf(s, c.attacker) + attackBoostTotal(s, c.attacker, c.atkBoosters);
     if (defending && hasStatic(s, c.attacker, 'clashDouble')) atk *= 2;
-    const def = (defending ? defenseOf(s, defending) : 0) + c.defBoosters.filter((b) => s.perms[b]).length;
+    const def = defending ? defenseOf(s, defending) + defenseBoostTotal(s, defending, c.defBoosters) : 0;
     const name = (iid: Iid) => getDef(s.cards[iid].cardId).name;
     return {
       text: youify(`${s.players[c.attackerController].name}'s ${name(c.attacker)} → ${c.defender === ME ? 'you' : s.players[c.defender].name}${defending ? ` (${name(defending)})` : ''}`),
@@ -927,7 +933,8 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     }
     if (myDecision && (myDecision.kind === 'boostAttack' || myDecision.kind === 'boostDefense')) {
       const atk = myDecision.kind === 'boostAttack';
-      const gain = atk ? picks.reduce((n, p) => n + boostValue(s, p), 0) : picks.length;
+      const cb = s.combat;
+      const gain = !cb ? picks.length : atk ? attackBoostTotal(s, cb.attacker, picks) : defenseBoostTotal(s, cb.blocker ?? cb.targetCreature, picks);
       return (
         <div className={`prompt${atk ? '' : ' alert'}`} role="alertdialog" aria-labelledby="pr-h">
           <h2 id="pr-h">{atk ? 'Boost your attack?' : 'Boost your defense?'}</h2>

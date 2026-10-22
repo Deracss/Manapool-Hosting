@@ -128,17 +128,32 @@ export const zombieScripts: Record<string, CardScript> = {
   'unholy-grimoire': {
     activated: [
       {
-        label: 'Tap: destroy a Zombie you control, create a Corrupted Mana Rock',
+        label: 'Tap: destroy a Zombie you control, create a Corrupted Mana Rock, draw 1',
         cost: { tap: true },
         condition: { count: yourZombies, atLeast: 1 },
-        effects: [{ do: 'choose', from: { zone: 'field', ...yourZombies }, as: 'z', prompt: 'Choose a Zombie you control to destroy' }, { do: 'destroy', target: 'var:z' }, { do: 'createRock', n: 1, corrupted: true }],
+        effects: [{ do: 'choose', from: { zone: 'field', ...yourZombies }, as: 'z', prompt: 'Choose a Zombie you control to destroy' }, { do: 'destroy', target: 'var:z' }, { do: 'createRock', n: 1, corrupted: true }, { do: 'draw', n: 1 }],
       },
     ],
   },
   // Tap; Create a 1/1 Zombie Token.
   'grim-gauntlet': { activated: [{ label: 'Tap: create a Zombie Token', cost: { tap: true }, effects: [zombieToken] }] },
   // Whenever a Creature in your drop zone is played to your field; generate 1 Mana Rock.
-  tombstone: { triggers: [{ label: 'Mana Rock', on: 'fromDiscard', subject: { type: 'Creature' }, condition: { eventPlayerIsYou: true }, effects: [{ do: 'createRock', n: 1 }] }] },
+  // ... and mark a creature in your discard pile: until your next End Phase you may play it by paying its cost.
+  tombstone: {
+    triggers: [
+      {
+        label: 'Mana Rock, mark a creature',
+        on: 'fromDiscard',
+        subject: { type: 'Creature' },
+        condition: { eventPlayerIsYou: true },
+        effects: [
+          { do: 'createRock', n: 1 },
+          { do: 'choose', from: { zone: 'discard', controller: 'you', type: 'Creature' }, as: 'm', optional: true, prompt: 'Tombstone: mark a creature in your discard pile (play it by paying its cost until your next End Phase)' },
+          { do: 'markDiscard', as: 'm' },
+        ],
+      },
+    ],
+  },
   // When a creature you control dies - Add 1 counter to this card. When at 3 counters - Create 1 Corrupted Mana and reduce 3 counters.
   'corruption-engine': {
     triggers: [
@@ -247,8 +262,8 @@ export const constructScripts: Record<string, CardScript> = {
   'support-mk-ii': {
     activated: [
       {
-        label: 'Pay 1, tap an Artifact: draw a card',
-        cost: { mana: 1 },
+        label: 'Tap an Artifact: draw a card',
+        cost: {},
         condition: { count: { ...yourArtifacts, untapped: true }, atLeast: 1 },
         effects: [{ do: 'choose', from: { zone: 'field', ...yourArtifacts, untapped: true }, as: 'a', prompt: 'Choose an Artifact you control to tap' }, { do: 'tap', target: 'var:a' }, { do: 'draw', n: 1 }],
       },

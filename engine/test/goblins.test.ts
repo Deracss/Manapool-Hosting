@@ -197,7 +197,7 @@ test('Groot: VIGILANCE, EVASIVE, and destroys another creature you control on at
   assert.equal(life(s, 1), 6);
 });
 
-test('Urgal the Whisperer: End Phase counters for each Goblin that boosted (Urgal gives one Goblin 3 at most)', () => {
+test('Urgal the Whisperer: End Phase counters for each Goblin that boosted (no limit per Goblin)', () => {
   let s = setup();
   put(s, 0, 'Urgal the Whisperer', { tapped: true });
   const a = put(s, 0, 'Goblin Rusher');
@@ -207,8 +207,8 @@ test('Urgal the Whisperer: End Phase counters for each Goblin that boosted (Urga
   s.perms[a].countersFrom['urgal-the-whisperer'] = 2; // Urgal already gave it 2
   s.perms[a].counters = 4; // counters from other cards don't count toward Urgal's limit
   s = advanceTo(s, 1, { choose: (d) => (d.options.includes(a) ? a : d.options[0]) });
-  assert.equal(s.perms[a].countersFrom['urgal-the-whisperer'], 3, 'second counter is refused at the cap');
-  assert.equal(s.perms[a].counters, 5);
+  assert.equal(s.perms[a].countersFrom['urgal-the-whisperer'], 4, 'no cap any more');
+  assert.equal(s.perms[a].counters, 6);
 });
 
 test('Goblin Whelpcaller makes 2 tokens; with Grukza it makes 3', () => {

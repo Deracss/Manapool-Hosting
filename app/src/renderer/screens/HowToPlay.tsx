@@ -29,9 +29,9 @@ export function HowToPlay({ onBack }: { onBack: () => void }) {
           <ul>
             <li>Attack with one ready creature at a time, at one opponent. New creatures can't attack until your next turn, unless they have HASTE.</li>
             <li>The defender may block with an untapped creature. Blocking taps it.</li>
-            <li><b>Boosting:</b> tap your untapped creatures to give the attacker +1 attack each. The defender can do the same for their blocker. New creatures can boost.</li>
+            <li><b>Boosting:</b> tap your untapped creatures to give the attacker +1 attack each. The defender can do the same for their blocker. New creatures can block and boost.</li>
             <li>Attack higher than defense: the blocker dies and the defender loses 1 life. Equal: the blocker dies, no life lost. Lower: nothing happens. The attacker never dies in combat.</li>
-            <li>Whenever you lose life in combat, you draw a card (not if the attacker has CRITICAL).</li>
+            <li>Every point of life you lose draws you a card, in combat or from a card effect (not if the attacker has CRITICAL, or the card says otherwise).</li>
           </ul>
           <h2>Playing the app</h2>
           <ul>
@@ -40,7 +40,7 @@ export function HowToPlay({ onBack }: { onBack: () => void }) {
             <li>When a bot plays something you can respond to, you get priority: play an Incantation or press <b>Pass</b>. With auto-pass on (Menu during a game), the game skips your priority when you have nothing you could play.</li>
           </ul>
           <h2>Card status</h2>
-          <p>All Goblins and Druids, the Forest field, Fireball, Swords Up!, Shields Up!, No!, Mana Droid, Vendor Street, Anthem #1, Mana Ramp and Cosmic Channeling work fully. Other cards can be played, but their abilities don't work yet: creatures fight with their printed stats, and other cards do nothing.</p>
+          <p>Every card in the five precon decks works. A few other cards aren't scripted yet: the deck builder marks them "Effect not working yet". They can still be played; creatures fight with their printed stats, and other cards do nothing.</p>
         </article>
       </div>
     </div>

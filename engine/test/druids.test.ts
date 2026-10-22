@@ -92,18 +92,16 @@ test('Druids #3: once per turn, return a Mana Orb to hand and charge a card from
   assert.ok(s.log.some((l) => l.endsWith('Swap a Mana Orb with a card in your hand.') && l.startsWith(`[T${s.turn}]`)), 'usable again next turn');
 });
 
-test('Cloudwhisper, Vendor Street and Anthem #1 each allow one more charge per turn', () => {
+test('Cloudwhisper and Anthem #1 each allow one more charge per turn', () => {
   let s = setup();
   s = act(s, { type: 'charge', player: 0, card: s.players[0].hand[0] });
   assert.throws(() => act(s, { type: 'charge', player: 0, card: s.players[0].hand[0] }), /already charged/);
   put(s, 0, 'Cloudwhisper');
   s = act(s, { type: 'charge', player: 0, card: s.players[0].hand[0] });
-  put(s, 0, 'Vendor Street');
   put(s, 0, 'Anthem #1');
   s = act(s, { type: 'charge', player: 0, card: s.players[0].hand[0] });
-  s = act(s, { type: 'charge', player: 0, card: s.players[0].hand[0] });
-  assert.equal(s.players[0].orbs.length, 4);
-  assert.throws(() => act(s, { type: 'charge', player: 0, card: s.players[0].hand[0] }), /4 times/);
+  assert.equal(s.players[0].orbs.length, 3);
+  assert.throws(() => act(s, { type: 'charge', player: 0, card: s.players[0].hand[0] }), /3 times/);
 });
 
 test('El Crow Druid: pay 2 to untap; destroy a Mana Orb for a permanent +2/+2 (not a counter)', () => {

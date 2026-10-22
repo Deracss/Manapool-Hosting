@@ -16,7 +16,7 @@ export const essentialScripts: Record<string, CardScript> = {
   // All of your creatures gain +1/1.
   'war-cry': { statics: [{ kind: 'buff', filter: yourCreatures, atk: 1, def: 1 }] },
   // Creatures you cast cost 1 less.
-  tavern: { statics: [{ kind: 'costReduction', filter: { type: 'Creature' }, amount: 1 }] },
+  tavern: { statics: [{ kind: 'costReduction', filter: { type: 'Creature' }, amount: 1 }, { kind: 'tavernBoost' }] },
   // All your creatures gain "Tap; add 1 mana to your mana pool until the end of the turn".
   'mana-harmonics': { statics: [{ kind: 'grantAbility', filter: yourCreatures, ability: tapFor('Tap: add 1 mana (Mana Harmonics)', [addMana(1)]) }] },
   // ON UPKEEP - You may throw a coin: ON HEADS - create 2 Mana Rocks. ON TAILS - Destroy a creature you control.
@@ -80,7 +80,10 @@ export const essentialScripts: Record<string, CardScript> = {
     resolve: [{ do: 'choose', from: { zone: 'discard', controller: 'you' }, as: 'c', prompt: 'Choose a card from your discard pile to put into your hand' }, { do: 'moveToHand', target: 'var:c' }],
   },
   // Negate the Play of a Creature.
-  'summoning-seal': { targets: [{ kind: 'stackCard', types: ['Creature'] }], resolve: [{ do: 'negate', target: 'target:0' }] },
+  'summoning-seal': {
+    targets: [{ kind: 'stackCard', types: ['Creature'] }],
+    resolve: [{ do: 'negate', target: 'target:0' }, { do: 'if', cond: { varIs: ['negated', 1] }, then: [{ do: 'createRock', n: 1, who: 'controllerOf:target:0' }] }],
+  },
   // Draw 3 cards and lose 1 life.
   'two-for-one': { resolve: [{ do: 'draw', n: 3 }, { do: 'loseLife', n: 1 }] },
 
@@ -106,7 +109,7 @@ export const essentialScripts: Record<string, CardScript> = {
   // Add 3 mana to your mana pool until the end of your turn.
   'mana-surge': { resolve: [addMana(3)] },
   // Draw 3 cards.
-  rinse: { resolve: [{ do: 'draw', n: 3 }] },
+  rinse: { resolve: [{ do: 'guide', n: 3 }, { do: 'draw', n: 3 }] },
   // Add mana to your mana pool equal to half the amount of artifacts on the board, rounded down.
   'mana-processing-unit': { resolve: [{ do: 'addMana', n: { half: { count: { type: 'Artifact', controller: 'any' } } } }] },
 
@@ -133,8 +136,8 @@ export const essentialScripts: Record<string, CardScript> = {
   'mana-conductor': {
     activated: [
       tapFor(
-        'Tap: a card from hand to the bottom of your deck, create a Mana Rock',
-        [{ do: 'choose', from: { zone: 'hand', controller: 'you' }, as: 'c', prompt: 'Choose a card to put on the bottom of your deck' }, { do: 'toDeckBottom', target: 'var:c' }, { do: 'createRock', n: 1 }],
+        'Tap: a card from hand to the bottom of your deck, create 2 Mana Rocks',
+        [{ do: 'choose', from: { zone: 'hand', controller: 'you' }, as: 'c', prompt: 'Choose a card to put on the bottom of your deck' }, { do: 'toDeckBottom', target: 'var:c' }, { do: 'createRock', n: 2 }],
         { condition: { count: { zone: 'hand', controller: 'you' }, atLeast: 1 } },
       ),
     ],
@@ -143,7 +146,7 @@ export const essentialScripts: Record<string, CardScript> = {
   // Tap - Add 1 mana to your mana pool and draw a card.
   'insight-orb': { activated: [tapFor('Tap: add 1 mana and draw a card', [addMana(1), { do: 'draw', n: 1 }])] },
   // Tap pay 1; Create 1 Corrupted Mana Rock.
-  'corrupted-mana-tree': { activated: [{ label: 'Tap, pay 1: create a Corrupted Mana Rock', cost: { tap: true, mana: 1 }, effects: [{ do: 'createRock', n: 1, corrupted: true }] }] },
+  'corrupted-mana-tree': { activated: [tapFor('Tap: create a Corrupted Mana Rock', [{ do: 'createRock', n: 1, corrupted: true }])] },
   'sleight-of-hand': { activated: [tapFor('Tap: draw a card', [{ do: 'draw', n: 1 }])] },
   'mana-tree': { activated: [tapFor('Tap: add 1 mana', [addMana(1)])] },
   // Tap; Create 1 Mana Rock.
@@ -182,6 +185,21 @@ export const essentialScripts: Record<string, CardScript> = {
   'truesight-helmet': equipment(2, 'FACEOFF'),
   'exalted-weapon': equipment(2, 'DOUBLE STRIKE'),
   'the-gods-blessing': equipment(2, 'INDESTRUCTIBLE'),
+  // Pay 2; Equip to target creature. Equipped creature gains EVASIVE.
+  'shadowveil-shroud': equipment(2, 'EVASIVE'),
+  // Pay 1; Equip to a creature you control - it can't be targeted by your opponents' card effects.
+  'magic-shield': {
+    statics: [{ kind: 'equipped' }, { kind: 'shield' }],
+    activated: [
+      {
+        label: 'Pay 1: Equip (opponents can\'t target it)',
+        cost: { mana: 1 },
+        speed: 'spell',
+        condition: { count: { zone: 'field', ...yourCreatures }, atLeast: 1 },
+        effects: [{ do: 'choose', from: { zone: 'field', ...yourCreatures }, as: 'c', prompt: 'Magic Shield: choose a creature you control to protect' }, { do: 'attach', target: 'var:c' }],
+      },
+    ],
+  },
 
   // ---------- RECONFIGURE (once per round, untap whenever you have priority) ----------
   // Tap; Add 1 mana to your mana pool until the end of the turn - Reconfigure

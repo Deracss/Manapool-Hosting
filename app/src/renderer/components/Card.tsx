@@ -154,6 +154,11 @@ export function showInGame(s: GameState, iid: Iid): CardShow {
     badges.push({ label: 'New', tone: 'dark' });
     notes.push("Summoning sickness: it can block and boost, but it can't attack or use TAP abilities until its controller's next turn.");
   }
+  if (perm.swapped) {
+    badges.push({ label: 'Switched', tone: 'gold' });
+    notes.push('Confused Knight: its attack and defense are switched (buffs switch too).');
+  }
+  if (inst.override?.untilEndOfTurn) notes.push(`Shifting Relic: a copy of ${d.name} until the end of the turn.`);
   if (perm.infectedBy !== undefined) {
     const by = perm.infectedBy === ME ? 'you' : s.players[perm.infectedBy].name;
     base.veil = 'infected';

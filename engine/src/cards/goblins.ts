@@ -160,7 +160,7 @@ export const goblinScripts: Record<string, CardScript> = {
             n: { count: { ...yourGoblins, flag: 'boostedThisTurn' } },
             effects: [
               { do: 'choose', from: { ...yourGoblins, type: 'Creature' }, as: 'g', prompt: 'Choose a Goblin to get a +1/+1 counter' },
-              { do: 'counter', target: 'var:g', atk: 1, def: 1, max: 3 },
+              { do: 'counter', target: 'var:g', atk: 1, def: 1 },
             ],
           },
         ],

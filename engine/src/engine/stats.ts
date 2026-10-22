@@ -20,6 +20,7 @@ export function isCreature(s: GameState, iid: Iid): boolean {
 export function isArtifact(s: GameState, iid: Iid): boolean {
   const d = defOf(s, iid);
   if (equippedAsArtifact(s, iid)) return true;
+  if (inst(s, iid).override?.alsoArtifact) return true;
   return d.type === 'Artifact' || (CONSTRUCTS_ARE_ARTIFACTS && (d.tribe === 'Construct' || (d.type === 'Token' && d.id === 'construct-token')));
 }
 
@@ -94,7 +95,19 @@ function baseStat(s: GameState, iid: Iid, which: 'attack' | 'defense'): number {
   return 0;
 }
 
+/** Confused Knight: a swapped creature's attack is what its defense would be (buffs included), and the other way round. */
 export function attackOf(s: GameState, iid: Iid): number {
+  if (s.perms[iid]?.swapped) return rawDefense(s, iid);
+  return rawAttack(s, iid);
+}
+
+export function defenseOf(s: GameState, iid: Iid): number {
+  const perm = s.perms[iid];
+  if (perm?.swapped) return rawAttack(s, iid) - perm.damage;
+  return rawDefense(s, iid) - (perm?.damage ?? 0);
+}
+
+function rawAttack(s: GameState, iid: Iid): number {
   const perm = s.perms[iid];
   let atk = baseStat(s, iid, 'attack');
   if (!perm) return atk;
@@ -108,11 +121,11 @@ export function attackOf(s: GameState, iid: Iid): number {
   return atk;
 }
 
-export function defenseOf(s: GameState, iid: Iid): number {
+function rawDefense(s: GameState, iid: Iid): number {
   const perm = s.perms[iid];
   let def = baseStat(s, iid, 'defense');
   if (!perm) return def;
-  def += perm.counterDef - perm.damage;
+  def += perm.counterDef;
   for (const m of perm.mods) def += m.def;
   for (const { src, controller, ab } of staticsInPlay(s)) {
     if (ab.kind === 'buff' && matches(s, iid, ab.filter, controller, src)) def += ab.def;
@@ -128,6 +141,38 @@ export function boostValue(s: GameState, booster: Iid): number {
     if (ab.kind === 'boostBonus' && matches(s, booster, ab.filter, controller, src)) v += ab.extra;
   }
   return v;
+}
+
+/** Total attack added by boosters, with Tavern's bonus for a booster of the attacker's own tribe. */
+export function attackBoostTotal(s: GameState, attacker: Iid, boosters: Iid[]): number {
+  const live = boosters.filter((b) => s.perms[b]);
+  return live.reduce((n, b) => n + boostValue(s, b), 0) + tavernBonus(s, attacker, live);
+}
+
+/** Total defense added by boosters (+1 each), with Tavern's bonus. */
+export function defenseBoostTotal(s: GameState, defending: Iid | null, boosters: Iid[]): number {
+  const live = boosters.filter((b) => s.perms[b]);
+  return live.length + (defending ? tavernBonus(s, defending, live) : 0);
+}
+
+/** Tavern: the first boost a creature gets in a battle from a creature of its own tribe counts for 1 more (per Tavern). */
+function tavernBonus(s: GameState, target: Iid, boosters: Iid[]): number {
+  const perm = s.perms[target];
+  const tribe = perm ? defOf(s, target).tribe : undefined;
+  if (!perm || !tribe || !boosters.some((b) => hasTribe(s, b, tribe))) return 0;
+  return player(s, perm.controller).field.filter((iid) => hasStatic(s, iid, 'tavernBoost')).length;
+}
+
+/** Magic Shield: the creature can't be targeted by card effects of `viewer` when `viewer` is an opponent of its controller. */
+export function shieldedFrom(s: GameState, iid: Iid, viewer: PlayerId): boolean {
+  const perm = s.perms[iid];
+  if (!perm || perm.controller === viewer) return false;
+  return Object.values(s.perms).some((o) => o.attachedTo === iid && hasStatic(s, o.iid, 'shield'));
+}
+
+/** Book of Spells: `pid` may play Spells as Incantations (they count as both). */
+export function spellsAsIncantations(s: GameState, pid: PlayerId): boolean {
+  return player(s, pid).field.some((iid) => hasStatic(s, iid, 'spellsAsIncantations'));
 }
 
 /** Discount on a card `pid` is about to play, from cards like Tavern and Foundry Stone. */
@@ -173,6 +218,9 @@ export function matches(s: GameState, iid: Iid, f: Filter, viewer: PlayerId, src
   if (f.hasCounters && (!perm || perm.counters === 0)) return false;
   if (f.types && !f.types.some((t) => isType(s, iid, t))) return false;
   if (f.keywordRef && !new RegExp(`\\b${f.keywordRef}\\b`).test(d.text)) return false;
+  if (f.statCounters && (!perm || (!perm.counterAtk && !perm.counterDef))) return false;
+  if (f.token && !inst(s, iid).isToken) return false;
+  if (f.equipment && !(d.script.statics ?? []).some((a) => a.kind === 'equipped')) return false;
   if (f.atkAbovePrinted !== undefined && (!perm || attackOf(s, iid) - baseStat(s, iid, 'attack') < f.atkAbovePrinted)) return false;
   return true;
 }

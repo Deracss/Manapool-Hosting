@@ -320,7 +320,7 @@ test('Corrupted Mana: only pays for creatures played from your discard pile, and
   s.players[0].discard.push(z);
   const spell = toHand(s, 0, 'Rinse');
   s.players[0].corruptedRocks = 4;
-  assert.throws(() => act(s, { type: 'play', player: 0, card: spell }), /needs 4 mana/);
+  assert.throws(() => act(s, { type: 'play', player: 0, card: spell }), /needs 3 mana/);
   s = settle(act(s, { type: 'play', player: 0, card: z }));
   assert.ok(s.players[0].field.includes(z));
   assert.equal(s.players[0].corruptedRocks, 3);

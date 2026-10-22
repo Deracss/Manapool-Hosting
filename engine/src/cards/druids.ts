@@ -83,7 +83,6 @@ export const druidScripts: Record<string, CardScript> = {
   },
 
   // You may play an extra mana card during your turn.
-  'vendor-street': { statics: [{ kind: 'extraCharge', n: 1 }] },
 
   // You can CHARGE an additional time during your Main Phase.
   'anthem-1': { statics: [{ kind: 'extraCharge', n: 1 }] },

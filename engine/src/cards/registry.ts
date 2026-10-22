@@ -8,6 +8,7 @@ import { druidScripts } from './druids.ts';
 import { essentialScripts } from './essentials.ts';
 import { constructScripts, demonScripts, vampireScripts, zombieScripts } from './tribes.ts';
 import { rulingScripts } from './rulings.ts';
+import { balanceScripts } from './balance.ts';
 
 interface RawDb {
   keywords: Record<string, string>;
@@ -29,6 +30,7 @@ const scripts: Record<string, CardScript> = {
   ...constructScripts,
   ...demonScripts,
   ...rulingScripts,
+  ...balanceScripts,
 };
 
 const defs = new Map<string, CardDef>();
