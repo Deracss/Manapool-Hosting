@@ -960,7 +960,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
           <p>{youify(myDecision.prompt)}</p>
           <div className="actions">
             <button type="button" className="btn primary" autoFocus onClick={() => step({ type: 'confirm', player: ME, accept: true })}>
-              {myDecision.offerFrom !== undefined ? 'Accept' : myDecision.cost ? `Yes, pay ${myDecision.cost}` : 'Yes'}
+              {myDecision.offerFrom !== undefined ? (myDecision.cost ? `Accept, pay ${myDecision.cost}` : 'Accept') : myDecision.cost ? `Yes, pay ${myDecision.cost}` : 'Yes'}
             </button>
             <button type="button" className="btn ghost" onClick={() => step({ type: 'confirm', player: ME, accept: false })}>
               {myDecision.offerFrom !== undefined ? 'Refuse' : 'No'}

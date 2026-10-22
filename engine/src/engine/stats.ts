@@ -218,6 +218,7 @@ export function matches(s: GameState, iid: Iid, f: Filter, viewer: PlayerId, src
   if (f.hasCounters && (!perm || perm.counters === 0)) return false;
   if (f.types && !f.types.some((t) => isType(s, iid, t))) return false;
   if (f.keywordRef && !new RegExp(`\\b${f.keywordRef}\\b`).test(d.text)) return false;
+  if (f.attacking && s.combat?.attacker !== iid) return false;
   if (f.statCounters && (!perm || (!perm.counterAtk && !perm.counterDef))) return false;
   if (f.token && !inst(s, iid).isToken) return false;
   if (f.equipment && !(d.script.statics ?? []).some((a) => a.kind === 'equipped')) return false;

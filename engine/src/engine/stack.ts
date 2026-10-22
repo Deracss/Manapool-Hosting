@@ -5,7 +5,7 @@
 //   priority again, and players may respond before the next item resolves.
 // - When everyone passes with an empty stack, the step ends.
 import type { Effect, EffectCtx, GameState, Iid, PlayerId, StackItem, WindowThen } from '../types.ts';
-import { afterBlock, afterDeclare, resolveCombat } from './combat.ts';
+import { afterBlock, afterDeclare, declareAttack, resolveCombat } from './combat.ts';
 import { runQueue } from './effects.ts';
 import { afterDraw, afterEnd, afterUpkeep, endMain } from './turns.ts';
 import { alive, defOf, fail, log, nameOf, nextAlive, player, pname } from './util.ts';
@@ -116,6 +116,9 @@ function finishResolution(s: GameState): void {
   // In the active player's Main phase, an empty stack hands control back to them.
   if (!s.stack.length && s.phase === 'main' && !s.combat && (w.then === 'returnMain' || w.then === 'endMain')) {
     s.window = null;
+    // Shade: a creature that must attack now does.
+    const next = s.pendingAttacks?.shift();
+    if (next && s.perms[next.attacker] && !player(s, next.target).eliminated) declareAttack(s, s.perms[next.attacker].controller, next.attacker, next.target, undefined, true);
     return;
   }
   w.passes = 0;

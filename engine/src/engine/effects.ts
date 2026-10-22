@@ -107,6 +107,7 @@ export function evalCondition(s: GameState, c: Condition, ctx: EffectCtx): boole
   if ('eventNIs' in c) return (ctx.event?.n ?? 0) === c.eventNIs;
   if ('varAtLeast' in c) return Number(ctx.vars[c.varAtLeast[0]] ?? 0) >= c.varAtLeast[1];
   if ('eventNMultipleOf' in c) return (ctx.event?.n ?? 0) > 0 && (ctx.event?.n ?? 0) % c.eventNMultipleOf === 0;
+  if ('attackInProgress' in c) return !!s.combat && onField(s, s.combat.attacker);
   if ('varSet' in c) return typeof ctx.vars[c.varSet] === 'string';
   if ('unblockedAttacks' in c) return (player(s, ctx.controller).unblockedAttacks ?? 0) >= c.unblockedAttacks;
   if ('attackTotal' in c) {
@@ -159,6 +160,7 @@ export function targetOptions(s: GameState, spec: TargetSpec, controller: Player
       const asIncantation = type === 'Spell' && spec.types.includes('Incantation') && spellsAsIncantations(s, it.controller);
       if (!spec.types.includes(type) && !asIncantation) return [];
       if (spec.negaters && !(defOf(s, it.iid).script.resolve ?? []).some((x) => x.do === 'negate')) return [];
+      if (spec.minCost !== undefined && (defOf(s, it.iid).cost ?? 0) < spec.minCost) return [];
       return [it.iid];
     });
   }
@@ -191,6 +193,7 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
       case 'createToken': {
         const made = createTokens(s, ctx.controller, e.token, evalNum(s, e.n, ctx), e.keywords ?? []);
         if (e.tapped) for (const t of made) s.perms[t].tapped = true;
+        if (e.as) ctx.vars[e.as] = made.at(-1) ?? null;
         log(s, `${pname(s, ctx.controller)} creates ${made.length} ${getDef(e.token).name}${made.length === 1 ? '' : 's'}.`);
         break;
       }
@@ -709,7 +712,7 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
         const v = e.targetVar ? ctx.vars[e.targetVar] : null;
         const target = typeof v === 'string' ? v : null;
         s.stack.push({ id: s.nextId++, kind: 'card', iid: e.iid, controller: ctx.controller, targets: target ? [target] : [] });
-        log(s, `A copy of ${nameOf(s, e.iid)} goes on the stack${target ? ` targeting ${nameOf(s, target)}` : ''}.`);
+        log(s, `${s.cards[e.iid].isToken ? 'A copy of ' : ''}${nameOf(s, e.iid)} goes on the stack${target ? ` targeting ${nameOf(s, target)}` : ''}.`);
         break;
       }
       case 'fpUse': {
@@ -943,6 +946,92 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
         } else if (x > 0) {
           lose(x);
         }
+        break;
+      }
+      case 'forceAttack': {
+        const iid = resolveRef(s, e.attacker, ctx);
+        const who = resolvePlayer(s, e.who, ctx);
+        if (iid && s.perms[iid] && who !== null && !player(s, who).eliminated) (s.pendingAttacks ??= []).push({ attacker: iid, target: who });
+        break;
+      }
+      case 'swapControl': {
+        const a = resolveRef(s, e.a, ctx);
+        const b = resolveRef(s, e.b, ctx);
+        if (!a || !b || !s.perms[a] || !s.perms[b]) break;
+        const pa = s.perms[a].controller;
+        const pb = s.perms[b].controller;
+        gainControl(s, a, pb);
+        gainControl(s, b, pa);
+        untapPerm(s, b);
+        break;
+      }
+      case 'sacrificeAny': {
+        const done = Number(ctx.vars[e.as] ?? 0);
+        const last = ctx.vars[`${e.as}:pick`];
+        if (typeof last === 'string' && s.perms[last]) {
+          destroy(s, last, 'sacrificed', true);
+          ctx.vars[e.as] = done + 1;
+        }
+        if (last === null) break; // stopped
+        ctx.vars[`${e.as}:pick`] = null;
+        const options = listMatching(s, { ...e.filter, zone: 'field', controller: 'you' }, ctx.controller, ctx.source);
+        if (!options.length) break;
+        if (ctx.vars[e.as] === undefined) ctx.vars[e.as] = 0;
+        queue.unshift({ do: 'choose', from: { ...e.filter, zone: 'field', controller: 'you' }, as: `${e.as}:pick`, optional: true, prompt: `${e.prompt} (${Number(ctx.vars[e.as])} so far)` }, e);
+        break;
+      }
+      case 'damageAll': {
+        const n = evalNum(s, e.n, ctx);
+        if (n <= 0) break;
+        const all = listMatching(s, { ...e.filter, zone: 'field' }, ctx.controller, ctx.source).filter((iid) => isCreature(s, iid));
+        for (const iid of all) {
+          if (hasKeyword(s, iid, 'INDESTRUCTIBLE')) continue;
+          s.perms[iid].damage += n;
+        }
+        log(s, `${all.length} creature${all.length === 1 ? '' : 's'} take ${n} damage.`);
+        break;
+      }
+      case 'grantAll': {
+        const all = listMatching(s, { ...e.filter, zone: 'field' }, ctx.controller, ctx.source);
+        for (const iid of all) s.perms[iid].mods.push({ atk: 0, def: 0, keyword: e.keyword, until: e.until });
+        log(s, `${all.length} card${all.length === 1 ? '' : 's'} gain ${e.keyword}${e.until === 'permanent' ? '' : ` until the end of ${e.until}`}.`);
+        break;
+      }
+      case 'franticSummon': {
+        const p = player(s, ctx.controller);
+        const revealed: Iid[] = [];
+        let found: Iid | null = null;
+        while (p.deck.length) {
+          const top = p.deck.shift()!;
+          if (getDef(s.cards[top].cardId).type === 'Creature') {
+            found = top;
+            break;
+          }
+          revealed.push(top);
+        }
+        p.discard.push(...revealed);
+        log(s, `${p.name} reveals ${revealed.length + (found ? 1 : 0)} card${revealed.length + (found ? 1 : 0) === 1 ? '' : 's'}${revealed.length ? `; ${revealed.length} go to the discard pile` : ''}.`);
+        if (!found) {
+          log(s, 'No creature was revealed.');
+          break;
+        }
+        log(s, `${p.name} plays ${nameOf(s, found)} for free.`);
+        emit(s, { name: 'cardPlayed', subject: found, player: ctx.controller });
+        s.stack.push({ id: s.nextId++, kind: 'card', iid: found, controller: ctx.controller, targets: [] });
+        break;
+      }
+      case 'sacrificeHighest': {
+        const steps: Effect[] = [];
+        for (const o of alive(s)) {
+          if (o === ctx.controller) continue;
+          const mine = player(s, o).field.filter((iid) => isCreature(s, iid));
+          if (!mine.length) continue;
+          const top = Math.max(...mine.map((iid) => attackOf(s, iid)));
+          const tied = mine.filter((iid) => attackOf(s, iid) === top);
+          if (tied.length === 1) steps.push({ do: 'sacrifice', target: `var:hs${o}` as Ref }), (ctx.vars[`hs${o}`] = tied[0]);
+          else steps.push({ do: 'ctl', player: o }, { do: 'chooseFrom', options: tied, as: `hs${o}`, prompt: `Honorable Sacrifice: choose which of your strongest creatures to sacrifice` }, { do: 'ctl', player: ctx.controller }, { do: 'sacrifice', target: `var:hs${o}` as Ref });
+        }
+        queue.unshift(...steps);
         break;
       }
       case 'reveal': {

@@ -90,6 +90,11 @@ export function botAction(s: GameState): Action {
       return { type: 'choosePlayer', player: pid, choice: opp ?? d.options[0] };
     }
     // Copied Spells/Incantations: aim at an opponent's creature or card.
+    // Goblin Soup: sacrifice tokens only.
+    if (d.as.endsWith(':pick')) {
+      const tok = d.options.find((o) => s.cards[o].isToken);
+      return { type: 'choose', player: pid, choice: tok ?? null };
+    }
     // Raining Arrows: block with a creature that holds, or chump only when the hit would be lethal; boost only as needed.
     if (d.as === 'arrowBlock' || d.as === 'arrowBooster') {
       const x = Number(d.ctx.vars.x ?? 0);

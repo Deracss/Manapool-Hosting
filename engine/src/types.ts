@@ -71,6 +71,7 @@ export interface Filter {
   statCounters?: boolean; // has +X/+Y counters
   token?: boolean; // is a token
   equipment?: boolean; // is an Equipment (a card that equips)
+  attacking?: boolean; // the creature attacking right now
 }
 
 /** Who an effect is for: you (default), a player chosen earlier, or the player the event is about. */
@@ -116,6 +117,7 @@ export type Condition =
   | { attackTotal: { tribe?: string }; atLeast: number } // total attack (with boosts) of your attackers this turn
   | { unblockedAttacks: number } // at least this many of your attacks this turn weren't blocked
   | { varSet: string } // a card was chosen into this variable
+  | { attackInProgress: true } // a creature is attacking right now
   | { and: Condition[] }
   | { not: Condition };
 
@@ -135,7 +137,7 @@ export interface StatOverride {
 
 export type Effect =
   | { do: 'draw'; n: Num; who?: PlayerRef; as?: string } // `as` stores the last card drawn
-  | { do: 'createToken'; token: string; n: Num; keywords?: Keyword[]; tapped?: boolean }
+  | { do: 'createToken'; token: string; n: Num; keywords?: Keyword[]; tapped?: boolean; as?: string } // `as` stores the last token made
   | { do: 'counter'; target: Ref; atk: number; def: number; max?: number } // max = most this source can give one card
   | { do: 'pump'; target: Ref; atk: number; def: number; until: Duration }
   | { do: 'grant'; target: Ref; keyword: Keyword; until: Duration }
@@ -220,7 +222,14 @@ export type Effect =
   | { do: 'markDiscard'; as: string } // Tombstone: choose a creature in your discard pile to play by paying its cost
   | { do: 'rainingArrows' } // Raining Arrows' resolution
   | { do: 'arrowsBoost' } // (internal)
-  | { do: 'arrowsHit' }; // (internal)
+  | { do: 'arrowsHit' } // (internal)
+  | { do: 'forceAttack'; attacker: Ref; who: PlayerRef } // after the stack empties, the creature attacks that player (Shade)
+  | { do: 'swapControl'; a: Ref; b: Ref } // the two creatures' controllers trade them; the one you get untaps
+  | { do: 'sacrificeAny'; filter: Filter; as: string; prompt: string } // sacrifice any number of matching cards you control; `as` = how many
+  | { do: 'damageAll'; filter: Filter; n: Num } // each matching creature takes n damage
+  | { do: 'grantAll'; filter: Filter; keyword: Keyword; until: Duration }
+  | { do: 'franticSummon' } // reveal until a creature: play it free, the rest go to the discard pile
+  | { do: 'sacrificeHighest' }; // each opponent sacrifices their creature with the highest attack (they pick among ties)
 
 export type EventName =
   | 'etb' // subject entered the field
@@ -301,7 +310,7 @@ export type Replacement = { kind: 'extraTokens'; tribe: string; extra: number };
 export type TargetSpec = (
   | { kind: 'creature'; filter?: Filter }
   | { kind: 'permanent'; filter: Filter }
-  | { kind: 'stackCard'; types: CardType[]; negaters?: boolean } // negaters: only cards that negate ("Counter cards")
+  | { kind: 'stackCard'; types: CardType[]; negaters?: boolean; minCost?: number } // negaters: only cards that negate ("Counter cards")
 ) & {
   prompt?: string; // what the player is asked ("Choose a creature to destroy")
   sacrifice?: boolean; // this target is sacrificed as part of the cost, when the card is played
@@ -527,6 +536,7 @@ export interface GameState {
   log: string[];
   fadedOut?: Permanent[]; // FADE OUT: back at the End Phase
   extraAttacks?: { attacker: Iid; target: PlayerId }[]; // attacks that follow the current one
+  pendingAttacks?: { attacker: Iid; target: PlayerId }[]; // forced attacks once the stack is empty (Shade)
 }
 
 /** One mana spent from a specific place. Leave `pay` out of an action to pay automatically. */

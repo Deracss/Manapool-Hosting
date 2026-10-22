@@ -1,7 +1,7 @@
 {
   "name": "manapool",
   "productName": "ManaPool",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "ManaPool card game",
   "author": "Gustavo Acevedo",
   "private": true,

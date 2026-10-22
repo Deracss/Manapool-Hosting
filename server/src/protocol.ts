@@ -2,7 +2,7 @@
 import type { Action, GameState, PlayerId } from '../../engine/src/index.ts';
 
 /** Bumped whenever the messages change, so old apps get a clear "please update" instead of odd errors. */
-export const PROTOCOL = 3;
+export const PROTOCOL = 4;
 
 export interface SeatInfo {
   name: string;

@@ -124,4 +124,86 @@ export const balanceScripts: Record<string, CardScript> = {
       },
     ],
   },
+  // ---------- Remaining Spells, Incantations and Anthems (Oct 22, 2026) ----------
+  // At the end of your draw phase; create a 1/1 Goblin Token.
+  'goblin-assembly': { triggers: [{ label: 'Goblin Token', on: 'drawStep', condition: { eventPlayerIsYou: true }, effects: [{ do: 'createToken', token: 'goblin-token', n: 1 }] }] },
+  // Whenever an opponent uses an Incantation during your turn - Create 1 Mana Rock.
+  'counterflux-reservoir': {
+    triggers: [{ label: 'Mana Rock', on: 'cardPlayed', subject: { type: 'Incantation' }, condition: { and: [{ isYourTurn: true }, { not: { eventPlayerIsYou: true } }] }, effects: [{ do: 'createRock', n: 1 }] }],
+  },
+  // ILLUSION 3/1 attacking target player (it stays on the field afterwards).
+  shade: {
+    resolve: [
+      { do: 'choosePlayer', as: 'sh', prompt: 'Shade: choose a player for the Illusion to attack', opponentsOnly: true },
+      { do: 'createToken', token: 'illusion', n: 1, as: 'ill' },
+      { do: 'forceAttack', attacker: 'var:ill', who: 'pvar:sh' },
+    ],
+  },
+  // For each Anthem on the board - draw 1 card.
+  hymn: { resolve: [{ do: 'draw', n: { count: { type: 'Anthem', controller: 'any' } } }] },
+  // If you have at least 2 Anthems in the field; search your deck for an Anthem and add it to your hand.
+  choir: {
+    resolve: [
+      {
+        do: 'if',
+        cond: { count: { type: 'Anthem', controller: 'you' }, atLeast: 2 },
+        then: [
+          { do: 'choose', from: { zone: 'deck', controller: 'you', type: 'Anthem' }, as: 'a', prompt: 'Choir: choose an Anthem from your deck' },
+          { do: 'moveToHand', target: 'var:a', reveal: true },
+          { do: 'shuffleDeck' },
+        ],
+        else: [],
+      },
+    ],
+  },
+  // Choose a creature you control and one an opponent controls: switch control; untap the one you now control.
+  'switching-sides': {
+    targets: [
+      { kind: 'creature', filter: { controller: 'you' }, prompt: 'Choose a creature you control to give away' },
+      { kind: 'creature', filter: { controller: 'opponent' }, prompt: "Choose an opponent's creature to take" },
+    ],
+    resolve: [{ do: 'swapControl', a: 'target:0', b: 'target:1' }],
+  },
+  // Sacrifice any number of Goblins you control; each creature the chosen opponent controls takes 1 damage per Goblin.
+  'goblin-soup': {
+    resolve: [
+      { do: 'choosePlayer', as: 'gs', prompt: 'Goblin Soup: choose an opponent', opponentsOnly: true },
+      { do: 'sacrificeAny', filter: { type: 'Creature', tribe: 'Goblin' }, as: 'n', prompt: 'Goblin Soup: sacrifice a Goblin, or stop' },
+      { do: 'asPlayer', who: 'pvar:gs', effects: [{ do: 'damageAll', filter: { type: 'Creature', controller: 'you' }, n: { var: 'n' } }] },
+    ],
+  },
+  // Reveal cards until a creature: play it free; the rest go to the discard pile.
+  'frantic-summon': { resolve: [{ do: 'franticSummon' }] },
+  // Play 2 cards with cost 4 or less from your hand (free); draw 1 card.
+  'arcane-spell': {
+    resolve: [
+      {
+        do: 'repeat',
+        n: 2,
+        effects: [
+          { do: 'choose', from: { zone: 'hand', controller: 'you', maxCost: 4 }, as: 'ac', optional: true, prompt: 'Arcane Spell: play a card costing 4 or less from your hand for free' },
+          { do: 'if', cond: { varSet: 'ac' }, then: [{ do: 'castCard', target: 'var:ac' }] },
+        ],
+      },
+      { do: 'draw', n: 1 },
+    ],
+  },
+  // Create a 2/2 Shapeshifter creature.
+  'spell-1': { resolve: [{ do: 'createToken', token: 'shapeshifter-token', n: 1 }] },
+  // Your opponents sacrifice the creature with the highest attack they control.
+  'honorable-sacrifice': { resolve: [{ do: 'sacrificeHighest' }] },
+  // ON ANY CLASH - Target creature gains CRITICAL until the end of the clash.
+  'power-chord': { playCondition: { clashInProgress: true }, targets: [{ kind: 'creature' }], resolve: [{ do: 'grant', target: 'target:0', keyword: 'CRITICAL', until: 'battle' }] },
+  // Negate target Incantation or Spell of cost 5 or greater.
+  'nullify-the-arcane': { targets: [{ kind: 'stackCard', types: ['Spell', 'Incantation'], minCost: 5 }], resolve: [{ do: 'negate', target: 'target:0' }] },
+  // All your creatures gain INDESTRUCTIBLE until the end of the turn.
+  'god-s-blessing': { resolve: [{ do: 'grantAll', filter: { type: 'Creature', controller: 'you' }, keyword: 'INDESTRUCTIBLE', until: 'turn' }] },
+  // ON ATTACK - Target attacking creature gains DOUBLE STRIKE until the end of the battle.
+  'fury-surge': {
+    playCondition: { attackInProgress: true },
+    targets: [{ kind: 'creature', filter: { attacking: true, controller: 'any' }, prompt: 'Choose the attacking creature' }],
+    resolve: [{ do: 'grant', target: 'target:0', keyword: 'DOUBLE STRIKE', until: 'battle' }],
+  },
+  // Destroy all cards on the field.
+  'apocalyptic-cleansing': { resolve: [{ do: 'destroyAll', filter: { controller: 'any' } }] },
 };

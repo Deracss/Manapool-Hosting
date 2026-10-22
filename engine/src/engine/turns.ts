@@ -77,6 +77,8 @@ export function endMain(s: GameState): void {
 }
 
 export function afterEnd(s: GameState): void {
+  // Cards that left during the End Phase itself (Blink, FADE OUT) still come back before the turn ends.
+  if (s.fadedOut?.length) returnFaded(s);
   for (const perm of Object.values(s.perms)) {
     perm.mods = perm.mods.filter((m) => m.until === 'permanent');
     perm.damage = 0;

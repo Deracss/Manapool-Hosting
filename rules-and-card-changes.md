@@ -109,6 +109,29 @@ Everything changed or clarified from the original rules PDF and Cards.xlsx, as u
 | Fine Print | 10 Souls: once per round, an OFFER is a COMMAND for one player. 20 Souls: once per round, for every player. |
 | Royal Banquet | Your End Phase: if 3+ of your attacks this turn weren't blocked, 1 damage to a player. |
 
+**Last Spells, Incantations and Anthems (Oct 22, 2026)**
+
+| Card | How it works |
+|---|---|
+| Goblin Assembly | End of your draw step: a 1/1 Goblin Token. |
+| Counterflux Reservoir | An opponent plays an Incantation during your turn: 1 Mana Rock. |
+| Shade | A 3/1 Illusion token attacks the opponent you choose once the stack is empty; it stays afterwards. |
+| Hymn | Draw 1 per Anthem on the board (everyone's). |
+| Choir | With 2+ Anthems of yours out: an Anthem from your deck to your hand, shuffle. |
+| Switching Sides | Trade a creature of yours for an opponent's; the one you get untaps. |
+| Goblin Soup | Choose an opponent; sacrifice any number of your Goblins; each of their creatures takes 1 damage per Goblin. |
+| Frantic Summon | Reveal until a creature: it's played for free; the other revealed cards go to your discard pile. |
+| Arcane Spell | Play up to 2 cards costing 4 or less from your hand for free, then draw 1. |
+| Spell #1 | A 2/2 Shapeshifter token. |
+| Honorable Sacrifice | Each opponent sacrifices their highest-attack creature (they choose among ties). |
+| Power Chord | During a clash: a creature gains CRITICAL for that battle. |
+| Nullify the Arcane | Negate a Spell or Incantation costing 5+. |
+| God's Blessing | Your creatures gain INDESTRUCTIBLE until the end of the turn. |
+| Fury Surge | During an attack: the attacker gains DOUBLE STRIKE for that battle. |
+| Apocalyptic Cleansing | Destroy every permanent on the field (INDESTRUCTIBLE ones survive). |
+
+Dragonheart Incubation waits for BOND (Dragons and Dragon Riders).
+
 **Life loss (Oct 22, 2026):** every point of life lost draws a card, in combat or from card effects, unless CRITICAL or the card says otherwise (DOUBLE STRIKE: 2 life, 2 cards).
 
 **New wording**
@@ -175,7 +198,7 @@ Everything changed or clarified from the original rules PDF and Cards.xlsx, as u
 ## Needs your OK
 
 - **Weapons Rack:** counts every Equipment you control, equipped or not.
-- **Blink:** the card comes back at the End Phase like FADE OUT (no new ETB).
+- **Blink:** the card comes back at the End Phase like FADE OUT (no new ETB); played during the End Phase, it comes back before the turn ends.
 - **Royal Banquet:** counts your attacks this turn with no blocker (FACEOFF attacks count); you may pick any player.
 
 - **Clockwork Servitor:** "another" Artifact; untapping itself loops forever now that it's an Artifact.
