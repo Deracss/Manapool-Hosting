@@ -84,42 +84,95 @@ export function ManaBar({
   onLeave: () => void;
 }) {
   const me = s.players[ME];
-  const avail = me.floating + me.orbs.filter((o) => o.filled).length + me.rocks;
+  const filled = me.orbs.filter((o) => o.filled).length;
+  const avail = me.floating + filled + me.rocks;
   const cost = pay ? pay.orbs.size + pay.rocks + pay.floating : 0;
+  const many = (n: number, el: (i: number) => JSX.Element) => Array.from({ length: Math.min(n, 4) }, (_, i) => el(i));
   return (
-    <div className={`manabar${pay ? ' previewing' : ''}`} aria-label="Your mana" data-zone="mana">
-      <span className="mb-label">MANA</span>
-      <div className="orbs">
-        {me.orbs.map((o) => (
-          <span
-            key={o.iid}
-            data-orb={o.iid}
-            className={`orb inspectable${o.filled ? ' full' : ''}${pay?.orbs.has(o.iid) ? ' paying' : ''}${spent.has(o.iid) ? ' spent' : ''}${arriving.has(o.iid) ? ' arrive' : ''}`}
-            aria-label={`Mana Orb (${o.filled ? 'filled' : 'used'}): ${getDef(s.cards[o.iid].cardId).name}`}
-            onMouseEnter={() => onOrbEnter(o.iid, o.filled)}
-            onMouseLeave={onLeave}
-          />
+    <div className={`manabar pool-bar${pay ? ' previewing' : ''}${!avail && !me.corruptedRocks ? ' dry' : ''}`} aria-label="Your mana" data-zone="mana">
+      <div className="rain" aria-hidden="true">
+        {RAIN.map((r, i) => (
+          <i key={i} style={{ left: `${r.x}%`, top: `${r.y}%`, animationDelay: `${r.d}s`, animationDuration: `${r.ms}s` }} />
         ))}
-        {!me.orbs.length && <span className="muted" style={{ fontSize: 13 }}>No Orbs yet: charge a card</span>}
+        {[...arriving].map((iid) => (
+          <i key={`s${iid}`} className="splash" style={{ left: `${8 + (me.orbs.findIndex((o) => o.iid === iid) + 1) * 4.2}%`, top: '55%' }} />
+        ))}
       </div>
-      <span className="mb-div" />
-      <span className={`mb-sym inspectable${pay?.rocks ? ' paying' : ''}`} onMouseEnter={() => onRockEnter(false)} onMouseLeave={onLeave} aria-label={`${me.rocks} Mana Rocks`}>
-        <RockIcon /> ×{me.rocks}
-      </span>
-      <span className={`mb-sym corrupt inspectable${pay?.corrupted ? ' paying' : ''}`} onMouseEnter={() => onRockEnter(true)} onMouseLeave={onLeave} aria-label={`${me.corruptedRocks} Corrupted Mana Rocks`}>
-        <RockIcon corrupted /> ×{me.corruptedRocks}
-      </span>
-      {me.floating > 0 && <span className="mb-sym floating">+{me.floating} this turn</span>}
-      <span style={{ flex: 1 }} />
-      {pay && <span className="mb-pay">{payPreviewText(pay)}</span>}
-      <span className="mb-avail">
-        Available <b>{avail}</b>
-        {pay && !pay.corrupted && cost > 0 && <span className="after"> → {avail - cost}</span>}
-      </span>
-      <span className="mb-charge">
-        Charge <b style={{ color: chargeOk ? 'var(--green)' : 'var(--faint)' }}>{chargeText}</b>
-      </span>
+      <div className="mp-main">
+        <span className="mb-label">MANA POOL</span>
+        <div className="mp-row">
+          <div className="orbs">
+            {me.orbs.map((o, i) => (
+              <span
+                key={o.iid}
+                data-orb={o.iid}
+                className={`orb inspectable${o.filled ? ' full' : ''}${pay?.orbs.has(o.iid) ? ' paying' : ''}${spent.has(o.iid) ? ' spent' : ''}${arriving.has(o.iid) ? ' arrive' : ''}`}
+                style={{ animationDelay: `${(i % 5) * -0.7}s` }}
+                aria-label={`Mana Orb (${o.filled ? 'filled' : 'used'}): ${getDef(s.cards[o.iid].cardId).name}`}
+                onMouseEnter={() => onOrbEnter(o.iid, o.filled)}
+                onMouseLeave={onLeave}
+              />
+            ))}
+            {!me.orbs.length && <span className="mp-hint">Charge a card to fill the pool</span>}
+          </div>
+          {me.orbs.length > 0 && (
+            <span className="mp-cap">
+              {filled} of {me.orbs.length} filled{filled < me.orbs.length ? ' · refill at your Upkeep' : ''}
+            </span>
+          )}
+        </div>
+        {me.rocks > 0 && (
+          <span key={`r${me.rocks}`} className={`mp-sym rock inspectable${pay?.rocks ? ' paying' : ''}`} onMouseEnter={() => onRockEnter(false)} onMouseLeave={onLeave} aria-label={`${me.rocks} Mana Rocks`}>
+            <span className="mp-icons">{many(me.rocks, (i) => <RockIcon key={i} size={22} />)}</span>
+            <b>{me.rocks} Mana Rock{me.rocks === 1 ? '' : 's'}</b>
+          </span>
+        )}
+        {me.corruptedRocks > 0 && (
+          <span key={`c${me.corruptedRocks}`} className={`mp-sym corrupt inspectable${pay?.corrupted ? ' paying' : ''}`} onMouseEnter={() => onRockEnter(true)} onMouseLeave={onLeave} aria-label={`${me.corruptedRocks} Corrupted Mana Rocks`}>
+            <span className="mp-icons">{many(me.corruptedRocks, (i) => <RockIcon key={i} size={22} corrupted />)}</span>
+            <b>{me.corruptedRocks} Corrupted</b>
+          </span>
+        )}
+        {me.floating > 0 && (
+          <span key={`f${me.floating}`} className={`mp-sym floating${pay?.floating ? ' paying' : ''}`} aria-label={`${me.floating} floating mana until the end of the turn`}>
+            <span className="mp-icons">{many(me.floating, (i) => <Sparkle key={i} />)}</span>
+            <span className="mp-two">
+              <b>+{me.floating} floating</b>
+              <small>until end of turn</small>
+            </span>
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+      </div>
+      <div className={`mp-total${pay && cost > 0 ? ' paying' : ''}`}>
+        <span key={avail} className="mp-num">
+          {pay && !pay.corrupted && cost > 0 ? (
+            <>
+              {avail}
+              <span className="after"> → {avail - cost}</span>
+            </>
+          ) : (
+            avail
+          )}
+        </span>
+        <span className="mp-two">
+          <b>AVAILABLE</b>
+          {pay ? <small className="mp-paytext">{payPreviewText(pay)}</small> : me.corruptedRocks > 0 ? <small>+{me.corruptedRocks} Corrupted for discard creatures</small> : <small>Charge <span style={{ color: chargeOk ? 'var(--green)' : 'var(--faint)', fontWeight: 800 }}>{chargeText}</span></small>}
+        </span>
+      </div>
     </div>
+  );
+}
+
+/** Where the raindrops land on the pool (fixed, so the pattern doesn't jump on every render). */
+const RAIN = Array.from({ length: 9 }, (_, i) => ({ x: 6 + ((i * 37) % 88), y: 22 + ((i * 53) % 60), d: -((i * 1.37) % 3.6), ms: 3.2 + ((i * 0.71) % 1.6) }));
+
+function Sparkle() {
+  return (
+    <svg className="sparkle" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24">
+      <path d="M12 3 13.6 10.4 21 12 13.6 13.6 12 21 10.4 13.6 3 12 10.4 10.4z" fill="#f6d27a" />
+      <path d="M19 3 19.6 5.4 22 6 19.6 6.6 19 9 18.4 6.6 16 6 18.4 5.4z" fill="#fff1cf" />
+    </svg>
   );
 }
 
@@ -820,9 +873,9 @@ export function useTableFx(s: GameState, enabled: boolean) {
         const old = before.perms[iid];
         if (!old) {
           if (wasFaded.has(iid)) reform.add(iid);
-          else if (s.cards[iid]?.isToken) {
-            token.add(iid);
-            snd('token');
+          else {
+            if (s.cards[iid]?.isToken) token.add(iid);
+            snd(etbSound(s, iid), 60);
           }
           continue;
         }
@@ -910,7 +963,7 @@ export function useTableFx(s: GameState, enabled: boolean) {
             hit.add(tg);
           }
           if (!targets.length && at) bs.push({ id: nextId.current++, kind: 'sparkle', rect: at, delay: 0 });
-          snd('resolve');
+          snd(type === 'Spell' ? 'resolveSpell' : 'resolveIncantation');
         }
       }
 
@@ -1290,4 +1343,18 @@ function counterText(perm: { counters: number; counterAtk: number; counterDef: n
   if (a || d) return `+${a}/+${d}`;
   const n = perm.counters - old.counters;
   return `+${n} counter${n === 1 ? '' : 's'}`;
+}
+
+/** The sound a permanent makes as it enters the field: by type, and creatures by kindred. */
+function etbSound(s: GameState, iid: Iid): Parameters<typeof playSound>[0] {
+  const d = s.cards[iid] ? getDef(s.cards[iid].cardId) : null;
+  const o = s.cards[iid]?.override;
+  if (!d) return 'etbCreature';
+  if (isCreature(s, iid)) {
+    const tribe = (o?.tribe ?? d.tribe ?? '').toLowerCase().replace(/\s+/g, '-');
+    const known = ['goblin', 'vampire', 'demon', 'zombie', 'human', 'construct', 'god', 'demigod', 'druid', 'dragon', 'dragon-rider', 'shapeshifter', 'illusion'];
+    return known.includes(tribe) ? (`etb-${tribe}` as Parameters<typeof playSound>[0]) : 'etbCreature';
+  }
+  if (d.type === 'Anthem') return 'etbAnthem';
+  return 'etbArtifact';
 }

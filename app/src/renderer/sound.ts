@@ -42,7 +42,25 @@ export type SoundKind =
   | 'coin'
   | 'coinLand'
   | 'reveal'
-  | 'priority';
+  | 'priority'
+  | 'etbArtifact'
+  | 'etbAnthem'
+  | 'resolveSpell'
+  | 'resolveIncantation'
+  | 'etbCreature'
+  | 'etb-goblin'
+  | 'etb-vampire'
+  | 'etb-demon'
+  | 'etb-zombie'
+  | 'etb-human'
+  | 'etb-construct'
+  | 'etb-god'
+  | 'etb-demigod'
+  | 'etb-druid'
+  | 'etb-dragon'
+  | 'etb-dragon-rider'
+  | 'etb-shapeshifter'
+  | 'etb-illusion';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -298,6 +316,101 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
   priority: (a) => {
     tone(a, { f: 988, dur: 0.22, type: 'sine', gain: 0.09 });
     tone(a, { t: 0.13, f: 1319, dur: 0.38, type: 'sine', gain: 0.08 });
+  },
+  // ---------- entering the field (one per type; creatures by kindred) ----------
+  // Artifact: metal set down, then a short mechanical settle.
+  etbArtifact: (a) => {
+    tone(a, { f: 1500, f2: 1380, dur: 0.18, type: 'triangle', gain: 0.06 });
+    noise(a, { dur: 0.05, type: 'highpass', f: 3000, gain: 0.08 });
+    tone(a, { t: 0.09, f: 210, f2: 160, dur: 0.12, type: 'square', gain: 0.04 });
+  },
+  // Anthem: a banner unfurls (cloth swish) and a bright two-note chord.
+  etbAnthem: (a) => {
+    noise(a, { dur: 0.25, f: 600, f2: 1800, q: 0.7, gain: 0.08, rise: true });
+    tone(a, { t: 0.18, f: 523, dur: 0.5, type: 'triangle', gain: 0.07 });
+    tone(a, { t: 0.18, f: 784, dur: 0.5, type: 'triangle', gain: 0.05 });
+  },
+  // Spell takes effect: a soft burst of light.
+  resolveSpell: (a) => {
+    tone(a, { f: 660, f2: 1320, dur: 0.22, type: 'sine', gain: 0.07 });
+    noise(a, { t: 0.05, dur: 0.18, type: 'highpass', f: 4000, gain: 0.05 });
+  },
+  // Incantation takes effect: a sharp magical snap.
+  resolveIncantation: (a) => {
+    noise(a, { dur: 0.06, type: 'bandpass', f: 2600, q: 3, gain: 0.14 });
+    tone(a, { t: 0.02, f: 880, f2: 440, dur: 0.2, type: 'sawtooth', gain: 0.035 });
+  },
+  // Any other creature: a firm step onto the table.
+  etbCreature: (a) => {
+    tone(a, { f: 120, f2: 70, dur: 0.18, gain: 0.22 });
+    noise(a, { dur: 0.06, type: 'lowpass', f: 700, gain: 0.1 });
+  },
+  // Goblin: quick scampering steps and a cheeky high snicker.
+  'etb-goblin': (a) => {
+    for (let i = 0; i < 3; i++) noise(a, { t: i * 0.05, dur: 0.03, type: 'bandpass', f: 1400, q: 2, gain: 0.08 });
+    tone(a, { t: 0.15, f: 1100, f2: 1500, dur: 0.06, type: 'square', gain: 0.025 });
+    tone(a, { t: 0.23, f: 1250, f2: 1700, dur: 0.06, type: 'square', gain: 0.025 });
+  },
+  // Vampire: a low minor swell and a flutter of bat wings.
+  'etb-vampire': (a) => {
+    tone(a, { f: 220, dur: 0.6, type: 'sawtooth', gain: 0.025, vib: 3 });
+    tone(a, { f: 262, dur: 0.6, type: 'sawtooth', gain: 0.02, vib: 3 });
+    for (let i = 0; i < 4; i++) noise(a, { t: 0.12 + i * 0.06, dur: 0.04, type: 'bandpass', f: 900, q: 1.5, gain: 0.06 });
+  },
+  // Demon: a low growl over crackling embers.
+  'etb-demon': (a) => {
+    tone(a, { f: 70, f2: 55, dur: 0.5, type: 'sawtooth', gain: 0.07, vib: 9 });
+    for (let i = 0; i < 5; i++) noise(a, { t: 0.05 + i * 0.07, dur: 0.03, type: 'highpass', f: 2200 + Math.random() * 1800, gain: 0.06 });
+  },
+  // Zombie: earth breaks, then a hollow moan.
+  'etb-zombie': (a) => {
+    noise(a, { dur: 0.12, type: 'lowpass', f: 500, gain: 0.14 });
+    tone(a, { t: 0.08, f: 190, f2: 140, dur: 0.55, type: 'triangle', gain: 0.06, vib: 5 });
+  },
+  // Human: two bright brass-like notes, a small fanfare.
+  'etb-human': (a) => {
+    tone(a, { f: 392, dur: 0.14, type: 'sawtooth', gain: 0.035 });
+    tone(a, { t: 0.13, f: 523, dur: 0.28, type: 'sawtooth', gain: 0.035 });
+    tone(a, { t: 0.13, f: 523, dur: 0.28, type: 'triangle', gain: 0.05 });
+  },
+  // Construct: a heavy clank and a servo whir powering up.
+  'etb-construct': (a) => {
+    tone(a, { f: 180, f2: 140, dur: 0.1, type: 'square', gain: 0.05 });
+    noise(a, { dur: 0.05, type: 'highpass', f: 2500, gain: 0.08 });
+    tone(a, { t: 0.1, f: 300, f2: 900, dur: 0.3, type: 'square', gain: 0.02 });
+  },
+  // God: a radiant choir swell.
+  'etb-god': (a) => {
+    for (const [f, g] of [[523, 0.05], [659, 0.04], [784, 0.04], [1046, 0.025]] as const) tone(a, { f, dur: 0.85, type: 'sine', gain: g, vib: 5 });
+  },
+  // Demigod: a single bright bell, the promise of more.
+  'etb-demigod': (a) => {
+    tone(a, { f: 1046, dur: 0.6, type: 'sine', gain: 0.07, vib: 4 });
+    tone(a, { t: 0.04, f: 1568, dur: 0.4, type: 'sine', gain: 0.03 });
+  },
+  // Druid: rustling leaves and a wooden chime.
+  'etb-druid': (a) => {
+    noise(a, { dur: 0.3, f: 2400, f2: 1200, q: 0.6, gain: 0.06 });
+    tone(a, { t: 0.08, f: 660, dur: 0.3, type: 'triangle', gain: 0.05 });
+    tone(a, { t: 0.16, f: 990, dur: 0.3, type: 'triangle', gain: 0.04 });
+  },
+  // Dragon: a deep roar with a gust of wind.
+  'etb-dragon': (a) => {
+    noise(a, { dur: 0.6, type: 'lowpass', f: 300, f2: 1400, gain: 0.12, rise: true });
+    tone(a, { f: 90, f2: 60, dur: 0.6, type: 'sawtooth', gain: 0.06, vib: 12 });
+  },
+  // Dragon Rider: a wingbeat and a short horn call.
+  'etb-dragon-rider': (a) => {
+    noise(a, { dur: 0.12, f: 400, q: 0.8, gain: 0.1 });
+    noise(a, { t: 0.16, dur: 0.12, f: 400, q: 0.8, gain: 0.08 });
+    tone(a, { t: 0.1, f: 330, f2: 349, dur: 0.35, type: 'sawtooth', gain: 0.03 });
+  },
+  // Shapeshifter: a warbling, shifting tone.
+  'etb-shapeshifter': (a) => tone(a, { f: 400, f2: 900, dur: 0.4, type: 'triangle', gain: 0.06, vib: 40 }),
+  // Illusion: a glassy shimmer.
+  'etb-illusion': (a) => {
+    tone(a, { f: 1760, dur: 0.35, type: 'sine', gain: 0.04, vib: 20 });
+    tone(a, { t: 0.06, f: 2349, dur: 0.3, type: 'sine', gain: 0.03 });
   },
   soul: (a) => {
     tone(a, { f: 880, dur: 0.55, gain: 0.08, vib: 14 });
