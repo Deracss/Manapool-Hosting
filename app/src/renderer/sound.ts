@@ -488,10 +488,14 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
     voice(a, { t: 0.05, dur: 0.45, f: 110, f2: 95, vowel: 'a', vowel2: 'o', gain: 0.035, growl: 0.4, breath: 0.03 });
     for (let i = 0; i < 9; i++) noise(a, { t: 0.42 + i * 0.045, dur: 0.035, f: 700 + (i % 3) * 120, q: 1.2, gain: 0.07 });
   },
-  // Demon: a deep, distorted growl rising out of crackling embers.
+  // Demon: a match strikes and catches, under a dark organ chord with a tritone (an infernal pact).
   'etb-demon': (a) => {
-    voice(a, { dur: 0.95, f: 58, f2: 46, vowel: 'o', vowel2: 'u', gain: 0.16, growl: 1, breath: 0.05, vib: 3, vibRate: 4, formantShift: 0.8 });
-    for (let i = 0; i < 9; i++) noise(a, { t: 0.05 + i * 0.09 + Math.random() * 0.04, dur: 0.025, type: 'highpass', f: 2500 + Math.random() * 2500, gain: 0.05 });
+    noise(a, { dur: 0.08, type: 'highpass', f: 3000, f2: 1500, gain: 0.15 });
+    noise(a, { t: 0.06, dur: 0.4, f: 900, f2: 1600, q: 0.8, gain: 0.07, rise: true });
+    for (const [f, g] of [[65, 0.05], [78, 0.035], [92, 0.035], [131, 0.025]] as const) {
+      tone(a, { t: 0.12, f, dur: 1.1, type: 'sawtooth', gain: g * 0.45, vib: 1.5 });
+      tone(a, { t: 0.12, f, dur: 1.1, type: 'sine', gain: g });
+    }
   },
   // Zombie: a hand punches up through the soil; earth and pebbles scatter.
   'etb-zombie': (a) => {
@@ -596,7 +600,6 @@ const LEVEL: Partial<Record<SoundKind, number>> = {
   'etb-dragon-rider': 1.8,
   'etb-construct': 1.6,
   'etb-dragon': 1.5,
-  'etb-demon': 1.4,
   'etb-vampire': 1.3,
   etbArtifact: 1.3,
 };
