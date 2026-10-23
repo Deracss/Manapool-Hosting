@@ -60,7 +60,15 @@ export type SoundKind =
   | 'etb-dragon'
   | 'etb-dragon-rider'
   | 'etb-shapeshifter'
-  | 'etb-illusion';
+  | 'etb-illusion'
+  | 'etb-zombie-hungry'
+  | 'etb-zombie-shambler'
+  | 'etb-zombie-horde'
+  | 'etb-zombie-brains'
+  | 'etb-human-soldier'
+  | 'etb-human-herald'
+  | 'etb-human-villager'
+  | 'etb-human-knight';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -551,6 +559,62 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
     tone(a, { t: 0.1, f: 1760, dur: 0.5, gain: 0.035, vib: 22 });
     tone(a, { t: 0.18, f: 2637, dur: 0.4, gain: 0.025, vib: 18 });
   },
+  // Zombie, Hungry growl: a wet, rasping "grrhhh" with a gurgle, ending in a chomp.
+  'etb-zombie-hungry': (a) => {
+    voice(a, { dur: 0.85, f: 88, f2: 72, vowel: 'o', vowel2: 'a', gain: 0.15, growl: 0.7, breath: 0.08, vib: 6, vibRate: 9 });
+    for (let i = 0; i < 6; i++) noise(a, { t: 0.15 + i * 0.09, dur: 0.05, f: 380 + (i % 2) * 120, q: 4, gain: 0.07 });
+    tone(a, { t: 0.92, f: 220, f2: 90, dur: 0.08, type: 'square', gain: 0.05 });
+    noise(a, { t: 0.92, dur: 0.05, type: 'highpass', f: 2000, gain: 0.1 });
+  },
+  // Zombie, Shambler: two dragging, scraping steps, a bone crack, and a choked "uhh".
+  'etb-zombie-shambler': (a) => {
+    for (let i = 0; i < 2; i++) {
+      noise(a, { t: i * 0.38, dur: 0.3, f: 900, f2: 500, q: 1.2, gain: 0.1, rise: true });
+      tone(a, { t: i * 0.38 + 0.26, f: 110, f2: 60, dur: 0.14, gain: 0.16 });
+    }
+    noise(a, { t: 0.62, dur: 0.03, type: 'highpass', f: 3000, gain: 0.18 });
+    tone(a, { t: 0.62, f: 900, f2: 500, dur: 0.05, type: 'triangle', gain: 0.06 });
+    voice(a, { t: 0.72, dur: 0.4, f: 105, f2: 85, vowel: 'uh', gain: 0.12, breath: 0.07, attack: 0.03, vib: 8, vibRate: 11 });
+  },
+  // Zombie, Rising horde: a hand bursts out of the grave, then two moans overlap.
+  'etb-zombie-horde': (a) => {
+    noise(a, { dur: 0.25, type: 'lowpass', f: 600, gain: 0.18 });
+    for (let i = 0; i < 6; i++) noise(a, { t: 0.06 + i * 0.05, dur: 0.04, f: 1200 + Math.random() * 800, q: 1.5, gain: 0.05 });
+    voice(a, { t: 0.25, dur: 1.0, f: 120, f2: 95, vowel: 'o', vowel2: 'u', gain: 0.1, vib: 5, vibRate: 3, breath: 0.05, attack: 0.15 });
+    voice(a, { t: 0.45, dur: 0.9, f: 92, f2: 78, vowel: 'uh', vowel2: 'o', gain: 0.09, vib: 4, vibRate: 2.5, breath: 0.05, attack: 0.2 });
+  },
+  // Zombie, "Braaains": a long two-part moan, "braaa" sliding into "ains".
+  'etb-zombie-brains': (a) => {
+    noise(a, { dur: 0.04, f: 300, q: 2, gain: 0.12 });
+    voice(a, { t: 0.02, dur: 0.6, f: 115, f2: 105, vowel: 'a', gain: 0.13, vib: 5, vibRate: 4, breath: 0.05, attack: 0.08 });
+    voice(a, { t: 0.58, dur: 0.55, f: 108, f2: 88, vowel: 'e', vowel2: 'i', gain: 0.11, vib: 5, vibRate: 4, breath: 0.06, attack: 0.05 });
+    noise(a, { t: 1.05, dur: 0.18, f: 5000, q: 2, gain: 0.04 });
+  },
+  // Human, Soldier: a sword drawn from its sheath with a ring, then a sharp "hup!".
+  'etb-human-soldier': (a) => {
+    noise(a, { dur: 0.35, type: 'highpass', f: 2500, f2: 6000, gain: 0.1, rise: true });
+    tone(a, { t: 0.33, f: 2637, dur: 0.6, type: 'sine', gain: 0.05, vib: 3 });
+    tone(a, { t: 0.33, f: 3951, dur: 0.4, type: 'sine', gain: 0.02 });
+    voice(a, { t: 0.5, dur: 0.16, f: 230, f2: 200, vowel: 'u', vowel2: 'uh', gain: 0.12, breath: 0.05, attack: 0.01 });
+  },
+  // Human, Herald: a three-note brass fanfare (a voiced horn), and a cheer from the crowd.
+  'etb-human-herald': (a) => {
+    [[392, 0, 0.15], [392, 0.16, 0.1], [523, 0.28, 0.5]].forEach(([f, t, d]) => voice(a, { t, dur: d, f, vowel: 'a', gain: 0.09, attack: 0.02, q: 5, vib: t > 0.2 ? 4 : 0 }));
+    for (let i = 0; i < 3; i++) noise(a, { t: 0.55 + i * 0.03, dur: 0.5, f: 900 + i * 400, q: 3, gain: 0.025, rise: true });
+  },
+  // Human, Villager: footsteps on wood and a friendly rising "hey!".
+  'etb-human-villager': (a) => {
+    for (let i = 0; i < 2; i++) tone(a, { t: i * 0.15, f: 260, f2: 180, dur: 0.07, type: 'triangle', gain: 0.1 });
+    voice(a, { t: 0.32, dur: 0.3, f: 210, f2: 290, vowel: 'e', vowel2: 'i', gain: 0.12, breath: 0.04, attack: 0.02 });
+  },
+  // Human, Knight: heavy armored steps with jingling mail, a visor clang, and a low "hrm".
+  'etb-human-knight': (a) => {
+    steps(a, 2, { gap: 0.2, f: 120, gain: 0.18, heavy: true });
+    for (let i = 0; i < 2; i++) for (let k = 0; k < 3; k++) tone(a, { t: i * 0.2 + 0.02 + k * 0.02, f: 3200 + Math.random() * 1500, dur: 0.05, type: 'triangle', gain: 0.02 });
+    tone(a, { t: 0.45, f: 1100, dur: 0.35, type: 'triangle', gain: 0.06 });
+    tone(a, { t: 0.45, f: 1650, dur: 0.25, type: 'square', gain: 0.015 });
+    voice(a, { t: 0.62, dur: 0.32, f: 120, f2: 105, vowel: 'u', gain: 0.1, breath: 0.03, attack: 0.03 });
+  },
   soul: (a) => {
     tone(a, { f: 880, dur: 0.55, gain: 0.08, vib: 14 });
     tone(a, { t: 0.05, f: 1320, dur: 0.5, gain: 0.04, vib: 10 });
@@ -569,6 +633,9 @@ const LEVEL: Partial<Record<SoundKind, number>> = {
   'etb-demon': 1.4,
   'etb-vampire': 1.3,
   etbArtifact: 1.3,
+  'etb-zombie-hungry': 1.4,
+  'etb-zombie-brains': 1.5,
+  'etb-zombie-horde': 1.3,
 };
 
 /** Play a sound. The same sound within 60 ms is skipped (several cards at once stagger instead). */

@@ -1351,6 +1351,9 @@ function etbSound(s: GameState, iid: Iid): Parameters<typeof playSound>[0] {
   const o = s.cards[iid]?.override;
   if (!d) return 'etbCreature';
   if (isCreature(s, iid)) {
+    // Some Zombies and Humans have their own voice.
+    const own = !o?.tribe ? CARD_ETB[d.id] : undefined;
+    if (own) return own;
     const tribe = (o?.tribe ?? d.tribe ?? '').toLowerCase().replace(/\s+/g, '-');
     const known = ['goblin', 'vampire', 'demon', 'zombie', 'human', 'construct', 'god', 'demigod', 'druid', 'dragon', 'dragon-rider', 'shapeshifter', 'illusion'];
     return known.includes(tribe) ? (`etb-${tribe}` as Parameters<typeof playSound>[0]) : 'etbCreature';
@@ -1358,3 +1361,30 @@ function etbSound(s: GameState, iid: Iid): Parameters<typeof playSound>[0] {
   if (d.type === 'Anthem') return 'etbAnthem';
   return 'etbArtifact';
 }
+
+/** Zombies and Humans with their own enter-the-field sound (the rest use their kindred's). */
+const CARD_ETB: Record<string, Parameters<typeof playSound>[0]> = {
+  'necromantic-summoner': 'etb-zombie-horde',
+  'dreaded-lineage': 'etb-zombie-horde',
+  'deathly-reconjurer': 'etb-zombie-horde',
+  'graveborn-guardian': 'etb-zombie-horde',
+  'mourning-marauder': 'etb-zombie-hungry',
+  'krr-ask-virulent-contagion': 'etb-zombie-hungry',
+  'morbid-manipulator': 'etb-zombie-hungry',
+  'resilient-revenant': 'etb-zombie-shambler',
+  'isolated-sentinel': 'etb-zombie-shambler',
+  'gravebound-martyr': 'etb-zombie-shambler',
+  'cryptic-reclaimer': 'etb-zombie-brains',
+  'dread-envoy': 'etb-zombie-brains',
+  'corrupted-artificer': 'etb-zombie-brains',
+  'resting-adventurer': 'etb-human-soldier',
+  'human-1': 'etb-human-soldier',
+  'marcel-sky-captain': 'etb-human-herald',
+  'tavern-hostess': 'etb-human-herald',
+  'mischievous-child': 'etb-human-villager',
+  'meditating-monk': 'etb-human-villager',
+  'dual-channeler': 'etb-human-villager',
+  'mad-scientist': 'etb-human-villager',
+  'castiel-war-general': 'etb-human-knight',
+  'human-shield': 'etb-human-knight',
+};
