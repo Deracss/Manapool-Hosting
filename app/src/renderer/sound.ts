@@ -144,6 +144,133 @@ function noise(a: { ac: AudioContext; out: GainNode }, o: { t?: number; dur: num
   src.stop(t0 + o.dur + 0.02);
 }
 
+
+type Out = { ac: AudioContext; out: GainNode };
+type Vowel = 'a' | 'e' | 'i' | 'o' | 'u' | 'uh';
+/** Formant frequencies (F1, F2, F3) that make a buzz sound like a vowel. */
+const VOWEL: Record<Vowel, [number, number, number]> = {
+  a: [800, 1200, 2600],
+  e: [500, 1800, 2600],
+  i: [300, 2200, 3000],
+  o: [500, 900, 2400],
+  u: [330, 800, 2300],
+  uh: [640, 1190, 2400],
+};
+
+let shaperCurve: Float32Array<ArrayBuffer> | null = null;
+function grit(ac: AudioContext, amount: number): WaveShaperNode {
+  const ws = ac.createWaveShaper();
+  if (!shaperCurve) {
+    shaperCurve = new Float32Array(new ArrayBuffer(1024 * 4));
+    for (let i = 0; i < 1024; i++) {
+      const x = (i / 1023) * 2 - 1;
+      shaperCurve[i] = Math.tanh(x * 3);
+    }
+  }
+  ws.curve = shaperCurve;
+  ws.oversample = '2x';
+  void amount;
+  return ws;
+}
+
+/**
+ * A creature's voice: a buzzing source shaped by vowel formants, with a pitch contour, vibrato,
+ * optional growl (distortion and a fast tremble) and breath noise. Vowels can morph (a → u).
+ */
+function voice(
+  a: Out,
+  o: { t?: number; dur: number; f: number; f2?: number; vowel: Vowel; vowel2?: Vowel; gain?: number; vib?: number; vibRate?: number; growl?: number; breath?: number; attack?: number; q?: number; formantShift?: number },
+) {
+  const t0 = a.ac.currentTime + (o.t ?? 0);
+  const end = t0 + o.dur;
+  const osc = a.ac.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(o.f, t0);
+  if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, end);
+  if (o.vib) {
+    const lfo = a.ac.createOscillator();
+    const lg = a.ac.createGain();
+    lfo.frequency.value = o.vibRate ?? 5.5;
+    lg.gain.value = o.vib;
+    lfo.connect(lg).connect(osc.frequency);
+    lfo.start(t0);
+    lfo.stop(end);
+  }
+  // Source → (growl) → formant filters → envelope
+  let src: AudioNode = osc;
+  const pre = a.ac.createGain();
+  pre.gain.value = o.growl ? 1 + o.growl * 4 : 1;
+  osc.connect(pre);
+  src = pre;
+  if (o.growl) {
+    const ws = grit(a.ac, o.growl);
+    pre.connect(ws);
+    src = ws;
+  }
+  const env = a.ac.createGain();
+  const peak = o.gain ?? 0.12;
+  env.gain.setValueAtTime(0.0001, t0);
+  env.gain.exponentialRampToValueAtTime(peak, t0 + (o.attack ?? 0.04));
+  env.gain.setValueAtTime(peak, Math.max(t0 + (o.attack ?? 0.04), end - o.dur * 0.35));
+  env.gain.exponentialRampToValueAtTime(0.0001, end);
+  // Growl: a fast amplitude tremble.
+  let last: AudioNode = env;
+  if (o.growl) {
+    const trem = a.ac.createGain();
+    trem.gain.value = 0.65;
+    const lfo = a.ac.createOscillator();
+    const lg = a.ac.createGain();
+    lfo.frequency.value = 28 + o.growl * 10;
+    lg.gain.value = 0.35;
+    lfo.connect(lg).connect(trem.gain);
+    lfo.start(t0);
+    lfo.stop(end);
+    env.connect(trem);
+    last = trem;
+  }
+  last.connect(a.out);
+  const v1 = VOWEL[o.vowel];
+  const v2 = VOWEL[o.vowel2 ?? o.vowel];
+  const sh = o.formantShift ?? 1;
+  const formantGains = [1, 0.6, 0.25];
+  for (let i = 0; i < 3; i++) {
+    const bp = a.ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = o.q ?? 9;
+    bp.frequency.setValueAtTime(v1[i] * sh, t0);
+    bp.frequency.linearRampToValueAtTime(v2[i] * sh, end);
+    const g = a.ac.createGain();
+    g.gain.value = formantGains[i] * 3;
+    src.connect(bp).connect(g).connect(env);
+  }
+  osc.start(t0);
+  osc.stop(end + 0.02);
+  // Breath: noise through the same vowel.
+  if (o.breath) {
+    for (let i = 0; i < 2; i++) noise(a, { t: o.t, dur: o.dur, f: v1[i] * sh, f2: v2[i] * sh, q: 6, gain: o.breath * (i ? 0.5 : 1) });
+  }
+}
+
+/** Footfalls: short low thumps with a little grit. */
+function steps(a: Out, n: number, o: { t?: number; gap: number; f?: number; gain?: number; heavy?: boolean }) {
+  for (let i = 0; i < n; i++) {
+    const t = (o.t ?? 0) + i * o.gap;
+    tone(a, { t, f: (o.f ?? 160) * (1 + (i % 2) * 0.08), f2: (o.f ?? 160) * 0.55, dur: o.heavy ? 0.22 : 0.09, gain: o.gain ?? 0.16 });
+    noise(a, { t, dur: o.heavy ? 0.1 : 0.04, type: 'lowpass', f: o.heavy ? 500 : 1200, gain: (o.gain ?? 0.16) * 0.5 });
+  }
+}
+
+/** Wingbeats: whooshes of air. */
+function wings(a: Out, n: number, o: { t?: number; gap: number; f: number; gain: number }) {
+  for (let i = 0; i < n; i++) noise(a, { t: (o.t ?? 0) + i * o.gap, dur: o.gap * 0.8, f: o.f, f2: o.f * 0.5, q: 0.7, gain: o.gain, rise: true });
+}
+
+/** A bird chirp: a quick sine glide. */
+function chirp(a: Out, t: number, f: number) {
+  tone(a, { t, f, f2: f * 1.6, dur: 0.06, gain: 0.05 });
+  tone(a, { t: t + 0.07, f: f * 1.3, f2: f * 0.9, dur: 0.07, gain: 0.04 });
+}
+
 const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void> = {
   // Paper swish as a card slides off the deck.
   draw: (a) => noise(a, { dur: 0.16, f: 2400, f2: 4200, q: 0.9, gain: 0.22 }),
@@ -340,82 +467,108 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
     noise(a, { dur: 0.06, type: 'bandpass', f: 2600, q: 3, gain: 0.14 });
     tone(a, { t: 0.02, f: 880, f2: 440, dur: 0.2, type: 'sawtooth', gain: 0.035 });
   },
-  // Any other creature: a firm step onto the table.
+  // Any other creature: footsteps and a short grunt.
   etbCreature: (a) => {
-    tone(a, { f: 120, f2: 70, dur: 0.18, gain: 0.22 });
-    noise(a, { dur: 0.06, type: 'lowpass', f: 700, gain: 0.1 });
+    steps(a, 2, { gap: 0.13, f: 140, gain: 0.16 });
+    voice(a, { t: 0.2, dur: 0.22, f: 150, f2: 120, vowel: 'uh', gain: 0.09, breath: 0.03 });
   },
-  // Goblin: quick scampering steps and a cheeky high snicker.
+  // Goblin: scampering little feet, then a nasty high "heh-heh-heh" cackle.
   'etb-goblin': (a) => {
-    for (let i = 0; i < 3; i++) noise(a, { t: i * 0.05, dur: 0.03, type: 'bandpass', f: 1400, q: 2, gain: 0.08 });
-    tone(a, { t: 0.15, f: 1100, f2: 1500, dur: 0.06, type: 'square', gain: 0.025 });
-    tone(a, { t: 0.23, f: 1250, f2: 1700, dur: 0.06, type: 'square', gain: 0.025 });
+    steps(a, 4, { gap: 0.055, f: 420, gain: 0.07 });
+    [0, 1, 2, 3].forEach((i) => voice(a, { t: 0.26 + i * 0.095, dur: 0.085, f: 620 - i * 40, f2: 520 - i * 40, vowel: 'e', gain: 0.1, breath: 0.03, attack: 0.01, formantShift: 1.25, q: 7 }));
   },
-  // Vampire: a low minor swell and a flutter of bat wings.
+  // Vampire: a sharp hiss through fangs, then a flurry of bat wings.
   'etb-vampire': (a) => {
-    tone(a, { f: 220, dur: 0.6, type: 'sawtooth', gain: 0.025, vib: 3 });
-    tone(a, { f: 262, dur: 0.6, type: 'sawtooth', gain: 0.02, vib: 3 });
-    for (let i = 0; i < 4; i++) noise(a, { t: 0.12 + i * 0.06, dur: 0.04, type: 'bandpass', f: 900, q: 1.5, gain: 0.06 });
+    noise(a, { dur: 0.5, type: 'highpass', f: 4500, f2: 6500, gain: 0.12 });
+    noise(a, { dur: 0.5, f: 2800, q: 4, gain: 0.05 });
+    voice(a, { t: 0.05, dur: 0.45, f: 110, f2: 95, vowel: 'a', vowel2: 'o', gain: 0.035, growl: 0.4, breath: 0.03 });
+    for (let i = 0; i < 9; i++) noise(a, { t: 0.42 + i * 0.045, dur: 0.035, f: 700 + (i % 3) * 120, q: 1.2, gain: 0.07 });
   },
-  // Demon: a low growl over crackling embers.
+  // Demon: a deep, distorted growl rising out of crackling embers.
   'etb-demon': (a) => {
-    tone(a, { f: 70, f2: 55, dur: 0.5, type: 'sawtooth', gain: 0.07, vib: 9 });
-    for (let i = 0; i < 5; i++) noise(a, { t: 0.05 + i * 0.07, dur: 0.03, type: 'highpass', f: 2200 + Math.random() * 1800, gain: 0.06 });
+    voice(a, { dur: 0.95, f: 58, f2: 46, vowel: 'o', vowel2: 'u', gain: 0.16, growl: 1, breath: 0.05, vib: 3, vibRate: 4, formantShift: 0.8 });
+    for (let i = 0; i < 9; i++) noise(a, { t: 0.05 + i * 0.09 + Math.random() * 0.04, dur: 0.025, type: 'highpass', f: 2500 + Math.random() * 2500, gain: 0.05 });
   },
-  // Zombie: earth breaks, then a hollow moan.
+  // Zombie: soil breaking, then a slow, hollow "uuuhhh" moan.
   'etb-zombie': (a) => {
-    noise(a, { dur: 0.12, type: 'lowpass', f: 500, gain: 0.14 });
-    tone(a, { t: 0.08, f: 190, f2: 140, dur: 0.55, type: 'triangle', gain: 0.06, vib: 5 });
+    noise(a, { dur: 0.18, type: 'lowpass', f: 450, gain: 0.16 });
+    noise(a, { t: 0.05, dur: 0.12, f: 1500, q: 1, gain: 0.05 });
+    voice(a, { t: 0.15, dur: 1.05, f: 118, f2: 92, vowel: 'uh', vowel2: 'u', gain: 0.13, vib: 4, vibRate: 3.2, breath: 0.06, attack: 0.18 });
   },
-  // Human: two bright brass-like notes, a small fanfare.
+  // Human: armored footsteps and a short battle shout ("hah!").
   'etb-human': (a) => {
-    tone(a, { f: 392, dur: 0.14, type: 'sawtooth', gain: 0.035 });
-    tone(a, { t: 0.13, f: 523, dur: 0.28, type: 'sawtooth', gain: 0.035 });
-    tone(a, { t: 0.13, f: 523, dur: 0.28, type: 'triangle', gain: 0.05 });
+    steps(a, 2, { gap: 0.14, f: 150, gain: 0.14 });
+    for (let i = 0; i < 2; i++) tone(a, { t: i * 0.14 + 0.01, f: 2400 + i * 300, dur: 0.06, type: 'triangle', gain: 0.025 });
+    voice(a, { t: 0.3, dur: 0.24, f: 210, f2: 170, vowel: 'a', gain: 0.12, breath: 0.04, attack: 0.015 });
   },
-  // Construct: a heavy clank and a servo whir powering up.
+  // Construct: a heavy clunk, a servo whirring up, and a two-tone robot chirp.
   'etb-construct': (a) => {
-    tone(a, { f: 180, f2: 140, dur: 0.1, type: 'square', gain: 0.05 });
-    noise(a, { dur: 0.05, type: 'highpass', f: 2500, gain: 0.08 });
-    tone(a, { t: 0.1, f: 300, f2: 900, dur: 0.3, type: 'square', gain: 0.02 });
+    tone(a, { f: 120, f2: 70, dur: 0.16, type: 'square', gain: 0.06 });
+    noise(a, { dur: 0.05, type: 'highpass', f: 2600, gain: 0.1 });
+    tone(a, { t: 0.12, f: 220, f2: 880, dur: 0.38, type: 'sawtooth', gain: 0.025, vib: 25, });
+    tone(a, { t: 0.55, f: 1320, dur: 0.07, type: 'square', gain: 0.03 });
+    tone(a, { t: 0.64, f: 990, dur: 0.1, type: 'square', gain: 0.03 });
   },
-  // God: a radiant choir swell.
+  // God: a radiant choir singing "aah" on a major chord.
   'etb-god': (a) => {
-    for (const [f, g] of [[523, 0.05], [659, 0.04], [784, 0.04], [1046, 0.025]] as const) tone(a, { f, dur: 0.85, type: 'sine', gain: g, vib: 5 });
+    for (const [f, g] of [[262, 0.07], [330, 0.06], [392, 0.06], [523, 0.045]] as const) voice(a, { dur: 1.3, f, vowel: 'a', vowel2: 'o', gain: g, vib: 4, vibRate: 5, breath: 0.012, attack: 0.25, q: 6 });
+    tone(a, { t: 0.2, f: 2093, dur: 1.0, gain: 0.015, vib: 6 });
   },
-  // Demigod: a single bright bell, the promise of more.
+  // Demigod: one young voice singing "ooh", and a bright bell.
   'etb-demigod': (a) => {
-    tone(a, { f: 1046, dur: 0.6, type: 'sine', gain: 0.07, vib: 4 });
-    tone(a, { t: 0.04, f: 1568, dur: 0.4, type: 'sine', gain: 0.03 });
+    voice(a, { dur: 0.9, f: 523, vowel: 'u', vowel2: 'o', gain: 0.07, vib: 5, attack: 0.15, q: 6 });
+    tone(a, { f: 1568, dur: 0.6, gain: 0.04, vib: 3 });
   },
-  // Druid: rustling leaves and a wooden chime.
+  // Druid: leaves rustle, birds answer, and a hollow wooden knock.
   'etb-druid': (a) => {
-    noise(a, { dur: 0.3, f: 2400, f2: 1200, q: 0.6, gain: 0.06 });
-    tone(a, { t: 0.08, f: 660, dur: 0.3, type: 'triangle', gain: 0.05 });
-    tone(a, { t: 0.16, f: 990, dur: 0.3, type: 'triangle', gain: 0.04 });
+    noise(a, { dur: 0.45, f: 2600, f2: 1400, q: 0.6, gain: 0.07 });
+    chirp(a, 0.12, 2400);
+    chirp(a, 0.3, 2800);
+    tone(a, { t: 0.5, f: 520, f2: 480, dur: 0.12, type: 'triangle', gain: 0.07 });
   },
-  // Dragon: a deep roar with a gust of wind.
+  // Dragon: wings beat the air, then a huge rumbling roar.
   'etb-dragon': (a) => {
-    noise(a, { dur: 0.6, type: 'lowpass', f: 300, f2: 1400, gain: 0.12, rise: true });
-    tone(a, { f: 90, f2: 60, dur: 0.6, type: 'sawtooth', gain: 0.06, vib: 12 });
+    wings(a, 2, { gap: 0.22, f: 350, gain: 0.16 });
+    voice(a, { t: 0.4, dur: 1.1, f: 95, f2: 55, vowel: 'a', vowel2: 'o', gain: 0.2, growl: 1.2, breath: 0.12, attack: 0.08, formantShift: 0.75 });
+    noise(a, { t: 0.4, dur: 1.1, type: 'lowpass', f: 900, f2: 300, gain: 0.08 });
   },
-  // Dragon Rider: a wingbeat and a short horn call.
+  // Dragon Rider: a wingbeat, a rider's horn call, and a small dragon snort.
   'etb-dragon-rider': (a) => {
-    noise(a, { dur: 0.12, f: 400, q: 0.8, gain: 0.1 });
-    noise(a, { t: 0.16, dur: 0.12, f: 400, q: 0.8, gain: 0.08 });
-    tone(a, { t: 0.1, f: 330, f2: 349, dur: 0.35, type: 'sawtooth', gain: 0.03 });
+    wings(a, 1, { gap: 0.25, f: 420, gain: 0.14 });
+    tone(a, { t: 0.2, f: 294, dur: 0.18, type: 'sawtooth', gain: 0.03 });
+    tone(a, { t: 0.36, f: 440, dur: 0.4, type: 'sawtooth', gain: 0.035, vib: 4 });
+    tone(a, { t: 0.36, f: 440, dur: 0.4, type: 'triangle', gain: 0.04 });
+    voice(a, { t: 0.7, dur: 0.3, f: 120, f2: 80, vowel: 'o', gain: 0.07, growl: 0.6, breath: 0.08 });
   },
-  // Shapeshifter: a warbling, shifting tone.
-  'etb-shapeshifter': (a) => tone(a, { f: 400, f2: 900, dur: 0.4, type: 'triangle', gain: 0.06, vib: 40 }),
-  // Illusion: a glassy shimmer.
+  // Shapeshifter: a voice that melts from vowel to vowel and pitch to pitch.
+  'etb-shapeshifter': (a) => {
+    voice(a, { dur: 0.5, f: 180, f2: 360, vowel: 'a', vowel2: 'i', gain: 0.08, vib: 30, vibRate: 7 });
+    voice(a, { t: 0.45, dur: 0.45, f: 360, f2: 150, vowel: 'i', vowel2: 'u', gain: 0.08, vib: 30, vibRate: 7 });
+  },
+  // Illusion: a ghostly whisper and a glassy shimmer.
   'etb-illusion': (a) => {
-    tone(a, { f: 1760, dur: 0.35, type: 'sine', gain: 0.04, vib: 20 });
-    tone(a, { t: 0.06, f: 2349, dur: 0.3, type: 'sine', gain: 0.03 });
+    for (let i = 0; i < 2; i++) noise(a, { t: i * 0.05, dur: 0.6, f: VOWEL.i[i], f2: VOWEL.a[i], q: 8, gain: 0.05 });
+    tone(a, { t: 0.1, f: 1760, dur: 0.5, gain: 0.035, vib: 22 });
+    tone(a, { t: 0.18, f: 2637, dur: 0.4, gain: 0.025, vib: 18 });
   },
   soul: (a) => {
     tone(a, { f: 880, dur: 0.55, gain: 0.08, vib: 14 });
     tone(a, { t: 0.05, f: 1320, dur: 0.5, gain: 0.04, vib: 10 });
   },
+};
+
+/** Loudness trims so every creature sound sits at about the same level. */
+const LEVEL: Partial<Record<SoundKind, number>> = {
+  'etb-illusion': 2.6,
+  'etb-demigod': 1.8,
+  'etb-druid': 1.8,
+  'etb-dragon-rider': 1.8,
+  'etb-construct': 1.6,
+  'etb-zombie': 1.5,
+  'etb-dragon': 1.5,
+  'etb-demon': 1.4,
+  'etb-vampire': 1.3,
+  etbArtifact: 1.3,
 };
 
 /** Play a sound. The same sound within 60 ms is skipped (several cards at once stagger instead). */
@@ -425,7 +578,14 @@ export function playSound(kind: SoundKind, delayMs = 0): void {
     if (now - (lastPlayed.get(kind) ?? 0) < 60) return;
     lastPlayed.set(kind, now);
     const a = audio();
-    if (a) SOUNDS[kind](a);
+    if (!a) return;
+    const lvl = LEVEL[kind];
+    if (lvl) {
+      const g = a.ac.createGain();
+      g.gain.value = lvl;
+      g.connect(a.out);
+      SOUNDS[kind]({ ac: a.ac, out: g });
+    } else SOUNDS[kind](a);
   };
   if (delayMs > 0) setTimeout(run, delayMs);
   else run();
