@@ -1351,9 +1351,6 @@ function etbSound(s: GameState, iid: Iid): Parameters<typeof playSound>[0] {
   const o = s.cards[iid]?.override;
   if (!d) return 'etbCreature';
   if (isCreature(s, iid)) {
-    // Some Zombies and Humans have their own voice.
-    const own = !o?.tribe ? CARD_ETB[d.id] : undefined;
-    if (own) return own;
     const tribe0 = (o?.tribe ?? d.tribe ?? '').toLowerCase().replace(/\s+/g, '-');
     // Every Human uses the Herald's fanfare.
     const tribe = tribe0 === 'human' ? 'human-herald' : tribe0;
@@ -1363,20 +1360,3 @@ function etbSound(s: GameState, iid: Iid): Parameters<typeof playSound>[0] {
   if (d.type === 'Anthem') return 'etbAnthem';
   return 'etbArtifact';
 }
-
-/** Zombies with their own enter-the-field sound (the rest use their kindred's). */
-const CARD_ETB: Record<string, Parameters<typeof playSound>[0]> = {
-  'necromantic-summoner': 'etb-zombie-horde',
-  'dreaded-lineage': 'etb-zombie-horde',
-  'deathly-reconjurer': 'etb-zombie-horde',
-  'graveborn-guardian': 'etb-zombie-horde',
-  'mourning-marauder': 'etb-zombie-hungry',
-  'krr-ask-virulent-contagion': 'etb-zombie-hungry',
-  'morbid-manipulator': 'etb-zombie-hungry',
-  'resilient-revenant': 'etb-zombie-shambler',
-  'isolated-sentinel': 'etb-zombie-shambler',
-  'gravebound-martyr': 'etb-zombie-shambler',
-  'cryptic-reclaimer': 'etb-zombie-brains',
-  'dread-envoy': 'etb-zombie-brains',
-  'corrupted-artificer': 'etb-zombie-brains',
-};
