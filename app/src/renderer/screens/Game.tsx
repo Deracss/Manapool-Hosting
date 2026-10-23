@@ -231,16 +231,17 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   const autoPassNow = (() => {
     if (who !== ME || s.decision || !s.window || s.phase === 'over') return false;
     const ap = settings.autoPass;
+    // An opponent's card aimed at one of yours (your card being played, or your creature, artifact or anthem):
+    // always stop if you could answer it, even with "Skip all responses" on.
+    const top = s.stack[s.stack.length - 1];
+    const topTargets = top ? (top.kind === 'card' ? top.targets : top.ctx.targets) : [];
+    const hitsMine = !!top && top.controller !== ME && topTargets.some((t) => s.perms[t]?.controller === ME || s.stack.some((it) => it.kind === 'card' && it.iid === t && it.controller === ME));
+    if (hitsMine && (ap.stopTargeted || ap.passAll) && !nothingToRespondWith(s, ME)) return false;
     if (ap.passAll) return true;
     if (ap.skipOwnSteps && s.active === ME && !s.stack.length && (s.window.then === 'afterUpkeep' || s.window.then === 'afterDraw')) return true;
     if (!ap.skipNothing || !nothingToRespondWith(s, ME)) return false;
     if (ap.stopAttacked && s.combat?.defender === ME && s.window.then === 'afterBoost') return false;
     if (ap.stopOppEnd && s.phase === 'end' && s.active !== ME && !s.stack.length) return false;
-    if (ap.stopTargeted) {
-      const top = s.stack[s.stack.length - 1];
-      const targets = top ? (top.kind === 'card' ? top.targets : top.ctx.targets) : [];
-      if (targets.some((t) => s.perms[t]?.controller === ME)) return false;
-    }
     return true;
   })();
 
@@ -1723,7 +1724,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                 [
                   ['skipNothing', "Skip when I can't do anything", 'No playable Incantation or ability: pass automatically.'],
                   ['stopAttacked', "Always stop when I'm attacked", 'Even with nothing to play, so you can watch the clash.'],
-                  ['stopTargeted', 'Stop when a card targets my things', 'Your creature, artifact or anthem is the target.'],
+                  ['stopTargeted', 'Stop when a card targets my things', 'Your creature, artifact or anthem, or your card being played, is the target. This stops even when you skip all responses.'],
                   ['stopOppEnd', "Stop at every opponent's End Phase", 'Your usual chance to use Incantations before your turn.'],
                   ['skipOwnSteps', 'Skip my own empty Upkeep and Draw', 'Go straight to your Main phase when nothing triggers.'],
                 ] as [keyof AutoPass, string, string][]
