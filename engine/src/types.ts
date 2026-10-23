@@ -159,7 +159,7 @@ export type Effect =
   | { do: 'copyToken'; target: Ref } // a copy of the card: permanents enter your field; Spells and Incantations go on the stack
   | { do: 'chooseFrom'; options: Iid[]; as: string; prompt: string } // (internal) pick from a fixed list
   | { do: 'stackCopy'; iid: Iid; targetVar?: string } // (internal) put a copied Spell or Incantation on the stack
-  | { do: 'reveal'; target: Ref }
+  | { do: 'reveal'; target: Ref; note?: string } // everyone sees the card; `note` says why
   | { do: 'if'; cond: Condition; then: Effect[]; else?: Effect[] }
   | { do: 'guide'; n: Num } // look at the top N cards; put any on top in any order, the rest on the bottom
   | { do: 'chooseMode'; prompt: string; modes: { label: string; effects: Effect[] }[] }
@@ -537,6 +537,9 @@ export interface GameState {
   fadedOut?: Permanent[]; // FADE OUT: back at the End Phase
   extraAttacks?: { attacker: Iid; target: PlayerId }[]; // attacks that follow the current one
   pendingAttacks?: { attacker: Iid; target: PlayerId }[]; // forced attacks once the stack is empty (Shade)
+  /** Shown to every player for the last action only (cleared by each apply): revealed cards and coin flips. */
+  reveals?: { seq: number; iid: Iid; player: PlayerId; note: string }[];
+  flips?: { seq: number; player: PlayerId; heads: boolean; source: string }[];
 }
 
 /** One mana spent from a specific place. Leave `pay` out of an action to pay automatically. */

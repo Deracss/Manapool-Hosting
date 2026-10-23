@@ -337,6 +337,12 @@ p { margin: 0; }
 .fx-announce .card-box { box-shadow: 0 0 0 4px var(--gold), 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(227, 185, 90, 0.35); border-radius: 12px; }
 .fx-who { padding: 6px 16px; border-radius: 16px; background: #2a1512; border: 1.5px solid var(--gold); color: #ffe9c2; font-family: var(--display); font-weight: 700; font-size: 18px; }
 .fx-target { padding: 6px 14px; border-radius: 14px; background: #242832; border: 1px solid #4a5060; font-weight: 800; }
+.fx-announce.reveal .fx-who { background: #13202c; border-color: var(--cyan); color: #d8f3fa; }
+.fx-announce.reveal .card-box { box-shadow: 0 0 0 4px var(--cyan), 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(127, 214, 232, 0.4); }
+.fx-announce.reveal .fx-target { max-width: 320px; text-align: center; font-weight: 700; }
+.fx-coin { position: absolute; left: calc(50% - 158px); top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 26px 34px; border-radius: 20px; background: rgba(10, 12, 16, 0.78); animation: announce 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.fx-coin .coin.tails { background: radial-gradient(circle at 35% 30%, #f4f6fa, #8d97a8 70%); border-color: #4a5260; box-shadow: 0 0 40px rgba(200, 210, 230, 0.4); }
+.fx-coin .coin-text { font-size: 24px; max-width: 360px; text-align: center; }
 @keyframes announce { from { opacity: 0; transform: translate(-50%, 30%) scale(0.5); } }
 .card-box.fx-enter { animation: enter 0.6s ease-out; }
 @keyframes enter { 0% { transform: scale(1.25); box-shadow: 0 0 0 4px var(--gold), 0 0 30px rgba(227, 185, 90, 0.8); } 100% { transform: scale(1); } }

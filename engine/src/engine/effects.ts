@@ -345,7 +345,10 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
       }
       case 'moveToHand': {
         const iid = resolveRef(s, e.target, ctx);
-        if (iid) moveToHand(s, iid, !!e.reveal);
+        if (iid) {
+          moveToHand(s, iid, !!e.reveal);
+          if (e.reveal) (s.reveals ??= []).push({ seq: s.nextId++, iid, player: ctx.controller, note: 'Puts it into their hand.' });
+        }
         break;
       }
       case 'toDeckBottom': {
@@ -382,6 +385,7 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
       case 'coinFlip': {
         const heads = random(s) < 0.5;
         log(s, `${pname(s, ctx.controller)} flips a coin: ${heads ? 'heads' : 'tails'}.`);
+        (s.flips ??= []).push({ seq: s.nextId++, player: ctx.controller, heads, source: ctx.source });
         queue.unshift(...(heads ? e.heads : e.tails));
         break;
       }
@@ -1036,7 +1040,10 @@ export function runQueue(s: GameState, queue: Effect[], ctx: EffectCtx): 'done' 
       }
       case 'reveal': {
         const iid = resolveRef(s, e.target, ctx);
-        if (iid) log(s, `${pname(s, ctx.controller)} reveals ${nameOf(s, iid)}.`);
+        if (iid) {
+          log(s, `${pname(s, ctx.controller)} reveals ${nameOf(s, iid)}.`);
+          (s.reveals ??= []).push({ seq: s.nextId++, iid, player: ctx.controller, note: e.note ?? '' });
+        }
         break;
       }
     }

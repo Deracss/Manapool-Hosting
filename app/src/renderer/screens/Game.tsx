@@ -280,6 +280,14 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     }
   }, [s, who, settings, menuOpen, fx.busy, autoPassNow, holdNext]);
 
+  // A soft chime when the game turns to you after someone else acted (not when auto-pass will answer for you).
+  const wasMine = useRef(false);
+  useEffect(() => {
+    const mine = who === ME && s.phase !== 'over' && s.phase !== 'mulligan' && (s.decision?.player === ME || (!!s.window && (!autoPassNow || holdNext))) && (!!s.decision || s.stack.length > 0 || !!s.combat);
+    if (mine && !wasMine.current) playSound('priority', 120);
+    wasMine.current = mine;
+  }, [s, who, autoPassNow]);
+
   // When something on the stack (or a combat) finishes, say what it did for a moment.
   useEffect(() => {
     const before = prevS.current;
@@ -1521,7 +1529,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         </div>
       )}
 
-      {choose && (
+      {choose && fx.announce?.kind !== 'coin' && (
         <div className="modal-back">
           <div className="modal" role="dialog" aria-labelledby="ch-h">
             <h2 id="ch-h">{choose.prompt}</h2>
@@ -1542,7 +1550,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
 
       {guide && <GuidePanel key={guide.cards.join()} s={s} cards={guide.cards} onHover={(iid) => setPreview({ iid })} onDone={(top, bottom) => step({ type: 'guide', player: ME, top, bottom })} />}
 
-      {modeDecision && (
+      {modeDecision && fx.announce?.kind !== 'coin' && (
         <div className="modal-back">
           <div className="modal" role="dialog" aria-labelledby="mo-h" style={{ width: 520 }}>
             <h2 id="mo-h">{modeDecision.prompt}</h2>
@@ -1557,7 +1565,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         </div>
       )}
 
-      {playerDecision && (
+      {playerDecision && fx.announce?.kind !== 'coin' && (
         <div className="modal-back">
           <div className="modal" role="dialog" aria-labelledby="pl-h" style={{ width: 520 }}>
             <h2 id="pl-h">{playerDecision.prompt}</h2>

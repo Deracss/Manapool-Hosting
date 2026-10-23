@@ -313,7 +313,7 @@ export const constructScripts: Record<string, CardScript> = {
     resolve: [
       { do: 'guide', n: 3 },
       { do: 'draw', n: 1, as: 'drawn' },
-      { do: 'if', cond: { refType: ['var:drawn', ['Artifact']] }, then: [{ do: 'may', prompt: 'You drew an Artifact. Reveal it to create a Mana Rock?', then: [{ do: 'reveal', target: 'var:drawn' }, { do: 'createRock', n: 1 }] }] },
+      { do: 'if', cond: { refType: ['var:drawn', ['Artifact']] }, then: [{ do: 'may', prompt: 'You drew an Artifact. Reveal it to create a Mana Rock?', then: [{ do: 'reveal', target: 'var:drawn', note: 'Drew an Artifact: creates 1 Mana Rock.' }, { do: 'createRock', n: 1 }] }] },
     ],
   },
   // Whenever a creature with +1/1 counters leaves the battlefield under your control, you may move the counters to this card.

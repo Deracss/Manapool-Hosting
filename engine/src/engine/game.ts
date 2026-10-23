@@ -108,6 +108,8 @@ export function whoMustAct(s: GameState): PlayerId | null {
 export function apply(state: GameState, action: Action): GameState {
   const s = structuredClone(state);
   if (s.phase === 'over') fail('The game is over.');
+  s.reveals = [];
+  s.flips = [];
   if (player(s, action.player).eliminated) fail(`${pname(s, action.player)} has been eliminated.`);
   dispatch(s, action);
   settle(s);

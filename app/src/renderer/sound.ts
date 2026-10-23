@@ -40,7 +40,9 @@ export type SoundKind =
   | 'flare-neural-nexus'
   | 'flare-celestial-citadel'
   | 'coin'
-  | 'coinLand';
+  | 'coinLand'
+  | 'reveal'
+  | 'priority';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -287,6 +289,16 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
     tone(a, { f: 1250, f2: 420, dur: 0.35, type: 'triangle', gain: 0.1 });
   },
   // Ethereal wavering tone.
+  // A card turned face up for everyone: a soft rising shimmer.
+  reveal: (a) => {
+    tone(a, { f: 520, f2: 780, dur: 0.28, type: 'triangle', gain: 0.07 });
+    tone(a, { t: 0.12, f: 1040, dur: 0.4, gain: 0.05, vib: 8 });
+  },
+  // Your priority / your decision: two gentle bell notes.
+  priority: (a) => {
+    tone(a, { f: 988, dur: 0.22, type: 'sine', gain: 0.09 });
+    tone(a, { t: 0.13, f: 1319, dur: 0.38, type: 'sine', gain: 0.08 });
+  },
   soul: (a) => {
     tone(a, { f: 880, dur: 0.55, gain: 0.08, vib: 14 });
     tone(a, { t: 0.05, f: 1320, dur: 0.5, gain: 0.04, vib: 10 });

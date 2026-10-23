@@ -411,7 +411,8 @@ export function ExpandedField({
 type Rect = { x: number; y: number; w: number; h: number };
 export interface Announce {
   id: number;
-  kind: 'play' | 'turn' | 'out';
+  kind: 'play' | 'turn' | 'out' | 'reveal' | 'coin';
+  heads?: boolean; // coin: the result
   iid?: Iid;
   show?: CardShow;
   who: string; // play: "Cat plays"; turn/out: the big words
@@ -496,6 +497,7 @@ export function useTableFx(s: GameState, enabled: boolean) {
   const prev = useRef<GameState | null>(null);
   const nextId = useRef(1);
   const [queue, setQueue] = useState<Announce[]>([]);
+  const lastSeen = useRef(0);
   const [ghosts, setGhosts] = useState<Ghost[]>([]);
   const [floats, setFloats] = useState<Float[]>([]);
   const [flash, setFlash] = useState<{ spent: Set<Iid>; arriving: Set<Iid>; entering: Set<Iid>; lunge: Iid | null }>({ spent: new Set(), arriving: new Set(), entering: new Set(), lunge: null });
@@ -649,8 +651,21 @@ export function useTableFx(s: GameState, enabled: boolean) {
       const nm = (id: string) => (s.cards[id] ? getDef(s.cards[id].cardId).name : id);
       queued.push({ id: nextId.current++, kind: 'play', iid, show: showInGame(s, iid), who: it.controller === ME ? 'You play' : `${s.players[it.controller].name} plays`, targets: (it as { targets: string[] }).targets.map(nm), ms: it.controller === ME ? 800 : 1400 });
     }
+    // Revealed cards (Mana Sage, searches) and coin flips: shown to everyone in the middle of the table.
+    for (const r of s.reveals ?? []) {
+      if (r.seq <= lastSeen.current || !s.cards[r.iid]) continue;
+      lastSeen.current = r.seq;
+      queued.push({ id: nextId.current++, kind: 'reveal', iid: r.iid, show: showInGame(s, r.iid), who: r.player === ME ? 'You reveal' : `${s.players[r.player].name} reveals`, sub: r.note ? youify(r.note) : undefined, targets: [], ms: 2000 });
+    }
+    for (const f of s.flips ?? []) {
+      if (f.seq <= lastSeen.current) continue;
+      lastSeen.current = f.seq;
+      const src = s.cards[f.source] ? getDef(s.cards[f.source].cardId) : null;
+      const side = src?.text.match(new RegExp(`ON ${f.heads ? 'HEADS' : 'TAILS'}\\s*-\\s*([^.]*)`, 'i'))?.[1]?.trim();
+      queued.push({ id: nextId.current++, kind: 'coin', heads: f.heads, who: `${f.player === ME ? 'You flip' : `${s.players[f.player].name} flips`} a coin${src ? ` · ${src.name}` : ''}`, sub: `${f.heads ? 'Heads' : 'Tails'}${side ? `: ${side}` : ''}`, targets: [], ms: 2400 });
+    }
     // Falling behind (very fast bots): skip banners and announcements, keep the "X is out" ones.
-    if (queued.length) setQueue((q) => [...q, ...(q.length > 3 ? queued.filter((a) => a.kind === 'out') : queued)]);
+    if (queued.length) setQueue((q) => [...q, ...(q.length > 3 ? queued.filter((a) => a.kind === 'out' || a.kind === 'coin' || a.kind === 'reveal') : queued)]);
     // Cards that left the field: a ghost cracks and fades where they were.
     const faded = new Set((s.fadedOut ?? []).map((p) => p.iid));
     const gone = Object.keys(before.perms).filter((iid) => !s.perms[iid] && rects.current.has(iid));
@@ -961,6 +976,11 @@ export function useTableFx(s: GameState, enabled: boolean) {
   // Each announcement holds for a moment, then the next one shows.
   useEffect(() => {
     if (!queue.length) return;
+    if (queue[0].kind === 'coin') {
+      playSound('coin');
+      playSound('coinLand', 1100);
+    }
+    if (queue[0].kind === 'reveal') playSound('reveal');
     const t = setTimeout(() => setQueue((q) => q.slice(1)), queue[0].ms);
     return () => clearTimeout(t);
   }, [queue]);
@@ -1079,7 +1099,23 @@ export function FxLayer({ fx, label }: { fx: ReturnType<typeof useTableFx>; labe
           {a.targets.length > 0 && <span className="fx-target">→ {a.targets.join(', ')}</span>}
         </div>
       )}
-      {a && a.kind !== 'play' && (
+      {a && a.kind === 'reveal' && a.show && (
+        <div className="fx-announce reveal" key={a.id} onClick={fx.skip}>
+          <span className="fx-who">{a.who}</span>
+          <Card show={a.show} scale={0.62} badges={false} />
+          {a.sub && <span className="fx-target">{a.sub}</span>}
+        </div>
+      )}
+      {a && a.kind === 'coin' && (
+        <div className="fx-coin" key={a.id} onClick={fx.skip}>
+          <span className="fx-who">{a.who}</span>
+          <div className={`coin ${a.heads ? 'heads' : 'tails'}`}>
+            <span>{a.heads ? 'H' : 'T'}</span>
+          </div>
+          <b className="coin-text">{a.sub}</b>
+        </div>
+      )}
+      {a && a.kind !== 'play' && a.kind !== 'reveal' && a.kind !== 'coin' && (
         <div className={`fx-band ${a.kind}${a.mine ? ' mine' : ''} ${a.kind === 'turn' ? moodOf(a.field) : ''}`} key={a.id} onClick={fx.skip}>
           <span className="big">
             {a.kind === 'turn' && a.field && FIELD_GLYPHS[a.field] && <span className="glyph" aria-hidden="true" dangerouslySetInnerHTML={{ __html: FIELD_GLYPHS[a.field] }} />}

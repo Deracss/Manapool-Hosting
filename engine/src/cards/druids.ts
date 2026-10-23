@@ -47,7 +47,7 @@ export const druidScripts: Record<string, CardScript> = {
 
   // ON CHARGE THIS CARD - Reveal this card and draw 1 card.
   'mana-sage': {
-    triggers: [{ label: 'Reveal and draw', on: 'charge', subject: 'self', effects: [{ do: 'reveal', target: 'self' }, { do: 'draw', n: 1 }] }],
+    triggers: [{ label: 'Reveal and draw', on: 'charge', subject: 'self', effects: [{ do: 'reveal', target: 'self', note: 'Charged as a Mana Orb: draws 1 card.' }, { do: 'draw', n: 1 }] }],
   },
 
   // You may charge an extra card per turn from your hand.
