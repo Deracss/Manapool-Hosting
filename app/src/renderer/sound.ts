@@ -91,7 +91,7 @@ function audio(): { ac: AudioContext; out: GainNode } | null {
 }
 
 /** A tone with a pitch slide and a quick attack / exponential release. */
-function tone(a: { ac: AudioContext; out: GainNode }, o: { f: number; f2?: number; t?: number; dur: number; type?: OscillatorType; gain?: number; vib?: number }) {
+export function tone(a: { ac: AudioContext; out: GainNode }, o: { f: number; f2?: number; t?: number; dur: number; type?: OscillatorType; gain?: number; vib?: number }) {
   const t0 = a.ac.currentTime + (o.t ?? 0);
   const osc = a.ac.createOscillator();
   const g = a.ac.createGain();
@@ -116,7 +116,7 @@ function tone(a: { ac: AudioContext; out: GainNode }, o: { f: number; f2?: numbe
 }
 
 /** Filtered noise: swishes, cracks and thumps. */
-function noise(a: { ac: AudioContext; out: GainNode }, o: { t?: number; dur: number; type?: BiquadFilterType; f: number; f2?: number; q?: number; gain?: number; rise?: boolean }) {
+export function noise(a: { ac: AudioContext; out: GainNode }, o: { t?: number; dur: number; type?: BiquadFilterType; f: number; f2?: number; q?: number; gain?: number; rise?: boolean }) {
   const t0 = a.ac.currentTime + (o.t ?? 0);
   const len = Math.ceil(a.ac.sampleRate * o.dur);
   const buf = a.ac.createBuffer(1, len, a.ac.sampleRate);
@@ -145,7 +145,7 @@ function noise(a: { ac: AudioContext; out: GainNode }, o: { t?: number; dur: num
 }
 
 
-type Out = { ac: AudioContext; out: GainNode };
+export type Out = { ac: AudioContext; out: GainNode };
 type Vowel = 'a' | 'e' | 'i' | 'o' | 'u' | 'uh';
 /** Formant frequencies (F1, F2, F3) that make a buzz sound like a vowel. */
 const VOWEL: Record<Vowel, [number, number, number]> = {
@@ -177,7 +177,7 @@ function grit(ac: AudioContext, amount: number): WaveShaperNode {
  * A creature's voice: a buzzing source shaped by vowel formants, with a pitch contour, vibrato,
  * optional growl (distortion and a fast tremble) and breath noise. Vowels can morph (a → u).
  */
-function voice(
+export function voice(
   a: Out,
   o: { t?: number; dur: number; f: number; f2?: number; vowel: Vowel; vowel2?: Vowel; gain?: number; vib?: number; vibRate?: number; growl?: number; breath?: number; attack?: number; q?: number; formantShift?: number },
 ) {
@@ -252,7 +252,7 @@ function voice(
 }
 
 /** Footfalls: short low thumps with a little grit. */
-function steps(a: Out, n: number, o: { t?: number; gap: number; f?: number; gain?: number; heavy?: boolean }) {
+export function steps(a: Out, n: number, o: { t?: number; gap: number; f?: number; gain?: number; heavy?: boolean }) {
   for (let i = 0; i < n; i++) {
     const t = (o.t ?? 0) + i * o.gap;
     tone(a, { t, f: (o.f ?? 160) * (1 + (i % 2) * 0.08), f2: (o.f ?? 160) * 0.55, dur: o.heavy ? 0.22 : 0.09, gain: o.gain ?? 0.16 });
@@ -261,12 +261,12 @@ function steps(a: Out, n: number, o: { t?: number; gap: number; f?: number; gain
 }
 
 /** Wingbeats: whooshes of air. */
-function wings(a: Out, n: number, o: { t?: number; gap: number; f: number; gain: number }) {
+export function wings(a: Out, n: number, o: { t?: number; gap: number; f: number; gain: number }) {
   for (let i = 0; i < n; i++) noise(a, { t: (o.t ?? 0) + i * o.gap, dur: o.gap * 0.8, f: o.f, f2: o.f * 0.5, q: 0.7, gain: o.gain, rise: true });
 }
 
 /** A bird chirp: a quick sine glide. */
-function chirp(a: Out, t: number, f: number) {
+export function chirp(a: Out, t: number, f: number) {
   tone(a, { t, f, f2: f * 1.6, dur: 0.06, gain: 0.05 });
   tone(a, { t: t + 0.07, f: f * 1.3, f2: f * 0.9, dur: 0.07, gain: 0.04 });
 }
@@ -589,4 +589,10 @@ export function playSound(kind: SoundKind, delayMs = 0): void {
   };
   if (delayMs > 0) setTimeout(run, delayMs);
   else run();
+}
+
+/** Plays a sound described by a function (used to audition new sounds). */
+export function playWith(fn: (a: Out) => void): void {
+  const a = audio();
+  if (a) fn(a);
 }
