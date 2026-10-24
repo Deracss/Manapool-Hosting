@@ -870,3 +870,54 @@ p.small, .muted.small { font-size: 13px; margin: 0; }
 .mp-total .mp-two small.mp-paytext { color: #f6d27a; font-weight: 700; max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .resume-box { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 12px; background: #173039; border: 1px solid #3e9db8; margin-bottom: 8px; }
+
+/* ---------- round 11: a roomier table ---------- */
+.turn-clock { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; padding: 3px 9px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line2); font-size: 12.5px; font-weight: 700; color: #d6d0c4; font-variant-numeric: tabular-nums; }
+.turn-clock svg { color: var(--gold); }
+.opp .row-cards.fit { overflow: hidden; gap: 6px; align-items: flex-end; padding: 6px 2px 2px; }
+.opp-summary { font-size: 12px; color: #9fc9d4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.life { gap: 4px; }
+.life > span[aria-hidden] { font-size: 13px; color: #ff9a8a; }
+.opp-life { height: 32px; min-width: 58px; }
+.opp-life b { font-size: 22px; }
+.life.big { height: 38px; min-width: 70px; }
+.life.big b { font-size: 25px; }
+.life.danger b { color: #ffb3a6; }
+.life.danger { box-shadow: 0 0 12px rgba(232, 112, 95, 0.55); }
+.mine .row-cards.mine-cards { flex: none; align-items: center; gap: 12px; }
+.field-split { margin-left: auto; align-self: stretch; display: flex; align-items: flex-start; padding: 0 4px 0 14px; border-left: 1px solid rgba(159, 215, 168, 0.25); }
+.field-split span { font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; color: #8fbf98; writing-mode: vertical-rl; transform: rotate(180deg); }
+.hand-row { gap: 12px; }
+.hand-tools { width: 76px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 14px; position: relative; z-index: 60; }
+.hand-count { font-family: var(--display); font-size: 30px; line-height: 1; color: var(--text); }
+.hand-count-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; color: var(--faint); margin-bottom: 6px; }
+.hand-tools .hand-sort { position: static; height: 32px; padding: 0 12px; font-size: 13px; }
+.hand { padding: 0 120px 2px 10px; }
+.hand .slot { transition: transform 0.14s ease, left 0.16s ease; left: 0; }
+.hand .slot.playable { transform: translateY(calc(var(--dy, 0px) - 22px)) rotate(var(--rot, 0deg)); }
+.hand .slot:hover, .hand .slot.sel { transform: translateY(-46px) rotate(0deg) scale(1.12); }
+.hand .slot:hover + .slot { left: 34px; }
+.hand .slot:hover + .slot + .slot { left: 16px; }
+.hand .slot:has(+ .slot:hover) { left: -34px; }
+.hand .slot:has(+ .slot + .slot:hover) { left: -16px; }
+.hand .slot.dragging { opacity: 0.35; }
+.side .preview-strip { height: 78px; flex: none; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line2); overflow: hidden; }
+.preview-strip .ps-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.preview-strip .ps-body b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-strip .ps-stats { color: var(--gold); font-variant-numeric: tabular-nums; }
+.preview-strip .ps-body > span { font-size: 12px; line-height: 1.25; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.preview-strip .ps-empty { font-size: 13px; color: var(--faint); }
+.sp-wait.mine { color: #c8f4ff; background: #173039; }
+.sp-wait.mine .dot { background: var(--cyan); }
+.sp-clock { font-variant-numeric: tabular-nums; color: var(--text); }
+.log li.combat-row { display: block; }
+.combat-head { all: unset; display: flex; gap: 8px; align-items: flex-start; cursor: pointer; width: 100%; }
+.combat-head:focus-visible { outline: 2px solid var(--cyan); border-radius: 4px; }
+.combat-head .steps { color: var(--cyan); font-size: 12px; white-space: nowrap; }
+.combat-steps { list-style: none; margin: 4px 0 2px 10px; padding: 0 0 0 10px; border-left: 2px solid #3e9db8; display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12.5px; }
+.combat-steps li { display: flex; gap: 6px; align-items: flex-start; }
+
+/* hand fits its row: the last card never covers the side panel */
+.hand { padding-right: calc(var(--cw, 200px) + 4px); }
+.hand .slot { flex-basis: var(--cw, 150px); }
+.hand .slot.playable { transform: translateY(calc(var(--dy, 0px) - 14px)) rotate(var(--rot, 0deg)); }

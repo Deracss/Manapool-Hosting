@@ -146,6 +146,21 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   const [emoteMenu, setEmoteMenu] = useState(false);
   const [bubbles, setBubbles] = useState<Record<number, { id: number; key: number }>>({});
   const lastEmote = useRef(0);
+  // Window size: the field and the hand grow to use the space.
+  const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const on = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  // Clocks: how long this turn and the current priority have been going (no limits).
+  const turnStart = useRef({ turn: -1, at: Date.now() });
+  const priStart = useRef({ key: '', at: Date.now() });
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
   // Your hand's order on screen: the last "Sort hand" order, with cards drawn since then added on the right.
   const [handOrder, setHandOrder] = useState<Iid[]>([]);
   // Cards that just arrived in your hand glow for a moment in their sorted slot.
@@ -154,6 +169,18 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
 
   const who = whoMustAct(s);
   const me = s.players[ME];
+  if (turnStart.current.turn !== s.turn) turnStart.current = { turn: s.turn, at: Date.now() };
+  const priKey = `${s.turn}:${who}:${s.stack.length}:${s.decision?.kind ?? ''}`;
+  if (priStart.current.key !== priKey) priStart.current = { key: priKey, at: Date.now() };
+  const clock = (from: number) => {
+    const sec = Math.max(0, Math.floor((Date.now() - from) / 1000));
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  };
+  // Card sizes from the window height: the field and the hand share the room below the opponents.
+  const roomH = vp.h - 58 - 26 - 24 - 232 - 128;
+  const fieldScale = Math.max(0.3, Math.min(0.52, (roomH - 24) / 1034));
+  const handScale = Math.max(0.4, Math.min(0.55, fieldScale / 0.8));
+  const stripW = (vp.w - 316 - 32 - 24) / 3 - 24;
   const d = s.decision;
   const myDecision = d && d.player === ME ? d : null;
   const freeMain = s.phase === 'main' && s.active === ME && !s.window && !s.decision && !s.combat && s.stack.length === 0;
@@ -399,14 +426,16 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
 
   // ---------- drag to play, target, charge and attack ----------
   const startDrag = (iid: Iid, from: 'hand' | 'field', e: { clientX: number; clientY: number; button: number }) => {
-    if (e.button !== 0 || targeting || myDecision || !(freeMain || myPriority)) return;
+    // Hand cards can always be dragged to rearrange them; playing them needs your Main phase or priority.
+    if (e.button !== 0 || targeting || myDecision || (!(freeMain || myPriority) && from !== 'hand')) return;
+    const canAct = freeMain || myPriority;
     const zones: Drag['zones'] = { field: false, mana: false, cards: new Set(), players: new Set() };
-    if (from === 'hand') {
+    if (from === 'hand' && canAct) {
       const o = handOptions(s, ME, iid);
       zones.mana = o.charge.legal;
       if (o.play.legal && !o.play.needsTarget) zones.field = true;
       if (o.play.legal && o.play.needsTarget) for (const t of o.play.slots[0]) zones.cards.add(t);
-    } else {
+    } else if (from === 'field') {
       const o = fieldOptions(s, ME, iid);
       for (const p of o.attackTargets) zones.players.add(p);
       for (const f of o.faceoffTargets) zones.cards.add(f.creature);
@@ -445,6 +474,22 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
       if (strip) {
         const pid = Number(strip.getAttribute('data-strip'));
         if (d.from === 'field') return d.zones.players.has(pid) ? { ok: true, label: `Release: attack ${s.players[pid].name}`, act: () => step({ type: 'attack', player: ME, attacker: d.iid, target: pid }) } : { ok: false, label: `Can't attack ${s.players[pid].name} now` };
+      }
+      if (el.closest('[data-zone="hand"]') && d.from === 'hand') {
+        // Rearranging: the card goes before the first card whose middle is right of the pointer.
+        const order = shownHand.filter((c) => c !== d.iid);
+        const slots = Array.from(document.querySelectorAll('[data-slot]')).filter((x) => x.getAttribute('data-slot') !== d.iid);
+        let at = order.length;
+        for (let k = 0; k < slots.length; k++) {
+          const r = slots[k].getBoundingClientRect();
+          if (x < r.left + r.width / 2) {
+            at = order.indexOf(slots[k].getAttribute('data-slot')!);
+            break;
+          }
+        }
+        const next = [...order.slice(0, at), d.iid, ...order.slice(at)];
+        if (next.join() === shownHand.join()) return null;
+        return { ok: true, label: 'Release to move it here', act: () => setHandOrder(next) };
       }
       if (el.closest('[data-zone="mana"]') && d.from === 'hand') {
         return d.zones.mana ? { ok: true, label: 'Drop to charge as a Mana Orb', act: () => step({ type: 'charge', player: ME, card: d.iid }) } : { ok: false, label: youify(handOptions(s, ME, d.iid).charge.why ?? "Can't charge it now") };
@@ -913,6 +958,16 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
     };
   })();
 
+  const fieldSummary = (ids: Iid[]) => {
+    const n = { c: 0, a: 0, an: 0 };
+    for (const iid of ids) {
+      if (isCreature(s, iid)) n.c++;
+      else if (getDef(s.cards[iid].cardId).type === 'Anthem') n.an++;
+      else n.a++;
+    }
+    return [n.c && `${n.c} creature${n.c === 1 ? '' : 's'}`, n.a && `${n.a} artifact${n.a === 1 ? '' : 's'}`, n.an && `${n.an} anthem${n.an === 1 ? '' : 's'}`].filter(Boolean).join(' · ');
+  };
+
   const previewShow = (() => {
     if (!preview) return null;
     if ('iid' in preview) return s.cards[preview.iid] ? showInGame(s, preview.iid) : null;
@@ -1057,6 +1112,12 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         <span style={{ fontFamily: 'var(--display)', fontWeight: 700, letterSpacing: '0.06em' }}>MANAPOOL</span>
         <span className="muted" style={{ fontSize: 15 }}>
           Turn {s.turn} · <b style={{ color: s.active === ME ? 'var(--gold)' : 'var(--text)' }}>{s.active === ME ? 'Your turn' : `${s.players[s.active].name}'s turn`}</b>
+          {s.phase !== 'mulligan' && s.phase !== 'over' && (
+            <span className="turn-clock" title="How long this turn has been going">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l3 2M10 2h4" /></svg>
+              {clock(turnStart.current.at)}
+            </span>
+          )}
         </span>
         <ol className="phases" aria-label="Phase">
           {['Upkeep', 'Draw', 'Main', 'Combat', 'End'].map((ph) => (
@@ -1105,8 +1166,8 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                   {bubbles[o.id] && <span className="emote-bubble" key={bubbles[o.id].key}>{EMOTES[bubbles[o.id].id]}</span>}
                   <div className="opp-head">
                     <span className="nm">{o.name}</span>
-                    <span className={`life${fx.marks.hurt.has(o.id) ? ' fx-hurt' : ''}${fx.marks.heal.has(o.id) ? ' fx-heal' : ''}`} data-life={o.id}>
-                      LIFE <b>{o.life}</b>
+                    <span className={`life opp-life${o.life <= 2 && !o.eliminated ? ' danger' : ''}${fx.marks.hurt.has(o.id) ? ' fx-hurt' : ''}${fx.marks.heal.has(o.id) ? ' fx-heal' : ''}`} data-life={o.id}>
+                      <span aria-hidden="true">♥</span> <b>{o.life}</b>
                     </span>
                     {attacking && <span className="tag" style={{ color: 'var(--red)' }}>ATTACKING</span>}
                     {!attacking && hasPri && <span className="tag" style={{ color: 'var(--cyan)' }}>THINKING</span>}
@@ -1132,8 +1193,15 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                       </span>
                     )}
                   </div>
-                  <div className="row-cards">
-                    {stackUp(sortField(s, o.field)).map((it, idx) => {
+                  {o.field.length > 0 && <span className="opp-summary">{fieldSummary(o.field)}</span>}
+                  <div className="row-cards fit">
+                    {(() => {
+                      const items = stackUp(sortField(s, o.field));
+                      // Shrink their cards so the whole field fits the strip (no scrolling).
+                      const base = items.reduce((n, it) => n + (s.perms[it.iid]?.tapped ? 476 : 341), 0);
+                      const sc = items.length ? Math.max(0.12, Math.min(0.25, (stripW - 6 * Math.max(0, items.length - 1)) / base)) : 0.25;
+                      return items.map((it, idx) => ({ it, idx, sc }));
+                    })().map(({ it, idx, sc }) => {
                       const iid = it.iid;
                       return wrapStack(it, <Card
                         key={iid}
@@ -1141,7 +1209,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                         tapDelay={s.phase === 'upkeep' && s.active === o.id && !s.perms[iid]?.tapped ? idx * 45 : undefined}
                         className={fxClass(iid)}
                         show={showInGame(s, iid)}
-                        scale={0.27}
+                        scale={sc}
                         tapped={s.perms[iid]?.tapped}
                         ring={ringFor(iid)}
                         dim={dimFor(iid)}
@@ -1190,16 +1258,23 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                 </>
               )}
             </div>
-            <div className="row-cards">
-              {stackUp(sortField(s, me.field)).map((it, idx) => {
+            <div className="row-cards mine-cards" style={{ height: Math.round(476 * fieldScale + 24) }}>
+              {(() => {
+                // Creatures big on the left (what you attack, block and boost with); artifacts and anthems smaller on the right.
+                const items = stackUp(sortField(s, me.field));
+                const crea = items.filter((it) => isCreature(s, it.iid));
+                const rest = items.filter((it) => !isCreature(s, it.iid));
+                return [...crea.map((it, idx) => ({ it, idx, sc: fieldScale, group: 'c' })), ...rest.map((it, idx) => ({ it, idx: idx + crea.length, sc: fieldScale * 0.68, group: 'o' }))];
+              })().map(({ it, idx, sc, group }, k, all) => {
                 const iid = it.iid;
-                return wrapStack(it, <Card
+                const firstOther = group === 'o' && (k === 0 || all[k - 1].group === 'c');
+                const card = <Card
                   key={iid}
                   iid={iid}
                   tapDelay={s.phase === 'upkeep' && s.active === ME && !s.perms[iid]?.tapped ? idx * 45 : undefined}
                   className={fxClass(iid)}
                   show={showInGame(s, iid)}
-                  scale={0.34}
+                  scale={sc}
                   tapped={s.perms[iid]?.tapped}
                   ring={ringFor(iid)}
                   dim={dimFor(iid)}
@@ -1213,7 +1288,17 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                     if (justDragged.current) return;
                     clickCard(iid, e);
                   }}
-                />);
+                />;
+                return (
+                  <Fragment key={`g${iid}`}>
+                    {firstOther && (
+                      <span className="field-split" aria-hidden="true">
+                        <span>ARTIFACTS · ANTHEMS</span>
+                      </span>
+                    )}
+                    {wrapStack(it, card)}
+                  </Fragment>
+                );
               })}
               {(s.fadedOut ?? [])
                 .filter((x) => x.controller === ME)
@@ -1259,33 +1344,38 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
             )}
           </section>
 
-          <section className="hand-row" aria-label="Your hand">
-            {me.hand.length > 1 && (
-              <button
-                type="button"
-                className="hand-sort"
-                disabled={handSorted}
-                title="Sorts the cards in your hand now by cost, then type. Cards you draw later still go to the right."
-                onClick={(e) => { e.stopPropagation(); setHandOrder(sortHand(s, me.hand)); }}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 6h10M4 12h7M4 18h4M18 5v14M15 16l3 3 3-3" /></svg>
-                {handSorted ? 'Hand sorted' : 'Sort hand'}
-              </button>
-            )}
-            <div className="hand">
+          <section className="hand-row" aria-label="Your hand" style={{ minHeight: Math.round(476 * handScale * 0.9), ['--cw' as string]: `${Math.round(341 * handScale)}px` }}>
+            <div className="hand-tools">
+              <b className="hand-count">{me.hand.length}</b>
+              <span className="hand-count-label">IN HAND</span>
+              {me.hand.length > 1 && (
+                <button
+                  type="button"
+                  className="hand-sort"
+                  disabled={handSorted}
+                  title="Sorts the cards in your hand now by cost, then type. Cards you draw later still go to the right. You can also drag cards to rearrange them."
+                  onClick={(e) => { e.stopPropagation(); setHandOrder(sortHand(s, me.hand)); }}
+                >
+                  <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 6h10M4 12h7M4 18h4M18 5v14M15 16l3 3 3-3" /></svg>
+                  {handSorted ? 'Sorted' : 'Sort'}
+                </button>
+              )}
+            </div>
+            <div className="hand" data-zone="hand">
               {shownHand.map((iid, i) => {
                 const mid = (me.hand.length - 1) / 2;
                 const off = i - mid;
                 return (
                   <div
                     key={iid}
-                    className={`slot${popover?.iid === iid ? ' sel' : ''}${newCards.has(iid) ? ' new' : ''}${fx.marks.landing.has(iid) ? ' landing' : ''}`}
+                    data-slot={iid}
+                    className={`slot${popover?.iid === iid ? ' sel' : ''}${newCards.has(iid) ? ' new' : ''}${fx.marks.landing.has(iid) ? ' landing' : ''}${(freeMain || myPriority) && playable.has(iid) ? ' playable' : ''}${drag?.started && drag.iid === iid ? ' dragging' : ''}`}
                     style={{ ['--land' as string]: `${fx.marks.landing.get(iid) ?? 0}ms`, ['--rot' as string]: `${off * Math.min(2.4, 16 / Math.max(1, me.hand.length))}deg`, ['--dy' as string]: `${Math.min(14, off * off * 0.9)}px`, zIndex: i + 1 }}
                   >
                     <Card
                       iid={iid}
                       show={showInGame(s, iid)}
-                      scale={0.46}
+                      scale={handScale}
                       ring={ringFor(iid)}
                       dim={(freeMain || myPriority) && !playable.has(iid)}
                       onHover={() => {
@@ -1314,7 +1404,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span className="nm">You</span>
                 <span className={`life big${me.life <= 2 && !me.eliminated ? ' danger' : ''}${fx.marks.hurt.has(ME) ? ' fx-hurt' : ''}${fx.marks.heal.has(ME) ? ' fx-heal' : ''}`} data-life={ME}>
-                  LIFE <b>{me.life}</b>
+                  <span aria-hidden="true">♥</span> <b>{me.life}</b>
                 </span>
               </div>
               <span className="muted" style={{ fontSize: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1355,7 +1445,23 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         </div>
 
         <aside className="side" aria-label="Details">
-          <div className="preview-slot">{previewShow ? <Card show={previewShow} scale={0.7} badges={false} /> : <div className="preview-empty">Hover a card to read it here. Hold Alt for full details and keyword help.</div>}</div>
+          <div className="preview-strip" aria-live="polite">
+            {previewShow ? (
+              <>
+                <Card show={previewShow} scale={0.15} badges={false} />
+                <span className="ps-body">
+                  <b>
+                    {previewShow.name}
+                    {typeof previewShow.cost === 'number' ? ` · ${previewShow.cost}` : ''}
+                    {previewShow.atk !== null && previewShow.atk !== undefined ? <span className="ps-stats"> {previewShow.atk}/{previewShow.def}</span> : null}
+                  </b>
+                  <span>{previewShow.text || previewShow.type}</span>
+                </span>
+              </>
+            ) : (
+              <span className="ps-empty">Hover a card to read it here. Hold Alt over any card to see it large.</span>
+            )}
+          </div>
           <StackPanel
             s={s}
             who={who}
@@ -1365,7 +1471,9 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
             onHover={(iid) => {
               if (iid) setPreview({ iid });
               setHighlight(iid);
+              setHovered(iid && s.cards[iid] ? showInGame(s, iid) : null);
             }}
+            clock={s.phase !== 'mulligan' && s.phase !== 'over' && who !== null ? { who: who === ME ? 'Your priority' : s.decision ? `${s.players[who].name} is deciding` : `Waiting on ${s.players[who].name}`, time: clock(priStart.current.at), mine: who === ME } : null}
             onPick={(iid) => {
               pickTarget(iid);
             }}

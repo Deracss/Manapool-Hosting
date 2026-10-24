@@ -185,6 +185,7 @@ export function StackPanel({
   targetSet,
   onHover,
   onPick,
+  clock,
 }: {
   s: GameState;
   who: PlayerId | null;
@@ -193,6 +194,7 @@ export function StackPanel({
   targetSet: Set<string>;
   onHover: (iid: Iid | null) => void;
   onPick: (iid: Iid) => void;
+  clock?: { who: string; time: string; mine: boolean } | null;
 }) {
   const items = [...s.stack].reverse();
   const nameOf = (id: string) => (s.cards[id] ? getDef(s.cards[id].cardId).name : id);
@@ -232,7 +234,7 @@ export function StackPanel({
               type="button"
               data-stack={it.id}
               data-target={it.kind === 'card' ? it.iid : undefined}
-              className={`sp-item${i === 0 ? ' top' : ''}${isTarget ? ' target' : ''}`}
+              className={`sp-item inspectable${i === 0 ? ' top' : ''}${isTarget ? ' target' : ''}`}
               onMouseEnter={() => onHover(src)}
               onMouseLeave={() => onHover(null)}
               onClick={(e) => {
@@ -253,10 +255,18 @@ export function StackPanel({
           );
         })}
       </div>
-      {waiting && (
-        <div className="sp-wait">
-          <span className="dot" /> Waiting on <b>{waiting}</b>…
+      {clock ? (
+        <div className={`sp-wait${clock.mine ? ' mine' : ''}`} title="How long the game has been waiting (no limit)">
+          <span className="dot" /> {clock.who}
+          <span style={{ flex: 1 }} />
+          <b className="sp-clock">{clock.time}</b>
         </div>
+      ) : (
+        waiting && (
+          <div className="sp-wait">
+            <span className="dot" /> Waiting on <b>{waiting}</b>…
+          </div>
+        )
       )}
     </section>
   );
@@ -280,7 +290,7 @@ const KIND_STYLE: Record<LogKind, { bg: string; fg: string; icon: string }> = {
 function kindOf(t: string): LogKind {
   if (t.startsWith('---')) return 'turn';
   if (/^(You|\w+) pings? .*: (Look|Careful|Attack this|Help\?)$/.test(t)) return 'ping';
-  if (/\battacks\b|^Combat:|loses \d+ life|\bboosts\b|DMG GAIN|clash/.test(t)) return 'attack';
+  if (/\battacks\b|^You attack |^Combat:|loses \d+ life|\bboosts\b|DMG GAIN|clash/.test(t)) return 'attack';
   if (/\bblocks\b|does not block/.test(t)) return 'block';
   if (/destroyed|sacrific|is INFECTED|FADE OUT|takes \d+ damage/.test(t)) return 'death';
   if (/contract|Souls?\b|OFFERS|accepted/.test(t)) return 'soul';
@@ -301,6 +311,7 @@ const FILTERS: { id: string; label: string; kinds?: LogKind[] }[] = [
 
 export function LogPanel({ s, onHoverName }: { s: GameState; onHoverName: (iid: Iid | null) => void }) {
   const [filter, setFilter] = useState('all');
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLOListElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -318,10 +329,46 @@ export function LogPanel({ s, onHoverName }: { s: GameState; onHoverName: (iid: 
     return raw.startsWith('---') ? `--- ${t} ---` : t;
   });
   const shown = lines
-    .map((text) => ({ text, kind: kindOf(text) }))
+    .map((text, n) => ({ text, kind: kindOf(text), n }))
     .filter((l) => l.kind !== 'other' || filter === 'all')
     .filter((l) => (f.kinds ? f.kinds.includes(l.kind) : f.id === 'me' ? /^You\b|\byou\b|\byour\b/i.test(l.text) || l.kind === 'turn' : true))
     .filter((l) => !/^Resolving /.test(l.text));
+  // Each attack becomes one line with its result; click it to see the steps.
+  type Row = { kind: 'line'; text: string; lk: LogKind } | { kind: 'combat'; head: string; result: string; lines: { text: string; lk: LogKind }[]; key: string; done: boolean };
+  const rows: Row[] = [];
+  let cur: Extract<Row, { kind: 'combat' }> | null = null;
+  const base = s.log.length - lines.length;
+  shown.forEach((l) => {
+    const m = /^(.*?) attacks? (.*?) with (.*?)\.$/.exec(l.text);
+    if (m && l.kind === 'attack' && !l.text.startsWith('Combat:')) {
+      const who = m[1] === 'You' ? 'Your' : `${m[1]}'s`;
+      cur = { kind: 'combat', head: `${who} ${m[3]} → ${m[2]}`, result: '', lines: [{ text: l.text, lk: l.kind }], key: `c${base + l.n}`, done: false };
+      rows.push(cur);
+      return;
+    }
+    // A group holds everything until the attack resolves, then only what the combat caused.
+    const ends = l.kind === 'turn' || / ends (their|your) Main phase/.test(l.text) || (cur?.done && (l.kind === 'play' || l.kind === 'mana'));
+    if (cur && !ends) {
+      cur.lines.push({ text: l.text, lk: l.kind });
+      if (/^Combat: |fizzles/.test(l.text)) cur.done = true;
+      return;
+    }
+    cur = null;
+    rows.push({ kind: 'line', text: l.text, lk: l.kind });
+  });
+  for (const r of rows) {
+    if (r.kind !== 'combat') continue;
+    const parts: string[] = [];
+    for (const { text } of r.lines) {
+      let m: RegExpExecArray | null;
+      if ((m = /^(.*?) blocks? with (.*?)\.$/.exec(text))) parts.push(`blocked by ${m[2]}`);
+      else if ((m = /^(.*?) (?:is|are) destroyed in the clash\.$/.exec(text))) parts.push(`${m[1]} destroyed`);
+      else if ((m = /^(.*?) loses? (\d+) life/.exec(text))) parts.push(`${m[1] === 'You' ? 'you lose' : `${m[1]} loses`} ${m[2]}`);
+      else if (/The attack is stopped/.test(text)) parts.push('stopped');
+      else if (/fizzles|does nothing/.test(text)) parts.push('fizzled');
+    }
+    r.result = parts.length ? parts.join(', ') : 'no damage';
+  }
   const render = (text: string): ReactNode[] => {
     if (!re) return [text];
     return text.split(re).map((part, i) =>
@@ -346,11 +393,42 @@ export function LogPanel({ s, onHoverName }: { s: GameState; onHoverName: (iid: 
         ))}
       </div>
       <ol className="log" ref={ref}>
-        {shown.map((l, i) => {
-          const st = KIND_STYLE[l.kind];
-          const text = l.kind === 'turn' ? l.text.replace(/^--- (.*) ---$/, '$1') : l.text;
+        {rows.map((r, i) => {
+          if (r.kind === 'combat') {
+            const st = KIND_STYLE.attack;
+            const isOpen = open.has(r.key);
+            return (
+              <li key={r.key} className={`combat-row${isOpen ? ' open' : ''}`}>
+                <button type="button" className="combat-head" aria-expanded={isOpen} onClick={() => setOpen((o) => { const n = new Set(o); if (n.has(r.key)) n.delete(r.key); else n.add(r.key); return n; })}>
+                  <span className="li-icon" style={{ background: st.bg, color: st.fg }}>
+                    <Icon name={st.icon} size={13} />
+                  </span>
+                  <span>
+                    {render(r.head)}: <b>{r.result}</b> <span className="steps">{isOpen ? '▾' : '▸'} {r.lines.length} steps</span>
+                  </span>
+                </button>
+                {isOpen && (
+                  <ol className="combat-steps">
+                    {r.lines.map((l, k) => {
+                      const s2 = KIND_STYLE[l.lk];
+                      return (
+                        <li key={k}>
+                          <span className="li-icon" style={{ background: s2.bg, color: s2.fg }}>
+                            <Icon name={s2.icon} size={12} />
+                          </span>
+                          <span>{render(l.text)}</span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </li>
+            );
+          }
+          const st = KIND_STYLE[r.lk];
+          const text = r.lk === 'turn' ? r.text.replace(/^--- (.*) ---$/, '$1') : r.text;
           return (
-            <li key={i} className={l.kind === 'turn' ? 'turn' : ''}>
+            <li key={i} className={r.lk === 'turn' ? 'turn' : ''}>
               <span className="li-icon" style={{ background: st.bg, color: st.fg }}>
                 <Icon name={st.icon} size={13} />
               </span>
