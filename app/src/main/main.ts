@@ -15,7 +15,8 @@ function createWindow(): void {
     show: false,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
-  Menu.setApplicationMenu(null);
+  // macOS keeps a small menu so Cmd+Q, Cmd+C and Cmd+V work.
+  Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
   win.once('ready-to-show', () => win.show());
   // Links open in the default browser, never inside the game window.
   win.webContents.setWindowOpenHandler(({ url }) => {

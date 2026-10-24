@@ -10,7 +10,8 @@
     "build": "node build.mjs",
     "start": "npm run build && electron .",
     "typecheck": "tsc --noEmit",
-    "package:win": "npm run build && electron-builder --win dir --x64 && makensis -V2 installer/manapool.nsi"
+    "package:win": "npm run build && electron-builder --win dir --x64 && makensis -V2 installer/manapool.nsi",
+    "package:mac": "npm run build && electron-builder --mac dir --arm64 --x64 --publish never"
   },
   "build": {
     "appId": "com.gustavoacevedo.manapool",
@@ -25,7 +26,22 @@
     "win": {
       "target": "dir",
       "signAndEditExecutable": false
-    }
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.card-games",
+      "identity": null,
+      "icon": "build/icon.png"
+    },
+    "publish": null
   },
   "devDependencies": {
     "@fontsource/alegreya": "^5.3.0",
