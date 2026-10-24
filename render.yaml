@@ -14,3 +14,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
+      # Seals game snapshots so players can bring a game back after a server restart.
+      - key: SNAPSHOT_KEY
+        generateValue: true

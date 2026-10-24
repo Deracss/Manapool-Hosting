@@ -2,7 +2,7 @@
 import type { Action, GameState, PlayerId } from '../../engine/src/index.ts';
 
 /** Bumped whenever the messages change, so old apps get a clear "please update" instead of odd errors. */
-export const PROTOCOL = 5;
+export const PROTOCOL = 6;
 
 export interface SeatInfo {
   name: string;
@@ -28,6 +28,7 @@ export type ClientMsg =
   | ({ t: 'create'; v: number } & Loadout)
   | ({ t: 'join'; v: number; code: string } & Loadout)
   | { t: 'rejoin'; v: number; code: string; token: string }
+  | { t: 'restore'; v: number; token: string; blob: string } // bring back a game the server lost (restart), from a sealed snapshot
   | { t: 'start' }
   | { t: 'act'; action: Action }
   | { t: 'ping'; sel: string; kind: string; label: string }
@@ -43,4 +44,5 @@ export type ServerMsg =
   | { t: 'ping'; from: PlayerId; sel: string; kind: string }
   | { t: 'emote'; from: PlayerId; id: number }
   | { t: 'error'; msg: string }
-  | { t: 'closed'; msg: string };
+  | { t: 'closed'; msg: string }
+  | { t: 'snapshot'; code: string; blob: string }; // sealed copy of the whole game (only the server can open it), kept by players in case the server restarts

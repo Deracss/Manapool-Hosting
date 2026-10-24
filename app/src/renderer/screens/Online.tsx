@@ -13,6 +13,32 @@ type Status = { k: 'form' } | { k: 'waking'; secs: number; what: 'host' | 'join'
 
 const PLAYABLE_FIELDS = FIELDS.filter((f) => f.scripted);
 
+// The last online game's sealed snapshot, so a game can come back after the server (or this app) restarts.
+const LAST_GAME_KEY = 'manapool.lastGame';
+interface LastGame {
+  server: string;
+  code: string;
+  token: string;
+  blob: string;
+  at: number;
+}
+function loadLastGame(): LastGame | null {
+  try {
+    const g = JSON.parse(localStorage.getItem(LAST_GAME_KEY) ?? 'null') as LastGame | null;
+    return g && Date.now() - g.at < 6 * 3600_000 ? g : null;
+  } catch {
+    return null;
+  }
+}
+function saveLastGame(g: LastGame | null): void {
+  try {
+    if (g) localStorage.setItem(LAST_GAME_KEY, JSON.stringify(g));
+    else localStorage.removeItem(LAST_GAME_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function Online({ onBack }: { onBack: () => void }) {
   const decks = useMemo(() => allDecks().filter(isLegal), []);
   const [name, setName] = useState(loadName());
@@ -34,6 +60,9 @@ export function Online({ onBack }: { onBack: () => void }) {
   const pingSubs = useRef(new Set<(from: PlayerId, sel: string, kind: PingKind) => void>());
   const emoteSubs = useRef(new Set<(from: PlayerId, id: number) => void>());
   const [inLobby, setInLobby] = useState(false);
+  const [lastGame, setLastGame] = useState<LastGame | null>(() => loadLastGame());
+  const snap = useRef<LastGame | null>(loadLastGame());
+  const restoreTried = useRef(false);
   const gameNo = useRef(0);
 
   useEffect(() => () => {
@@ -53,6 +82,10 @@ export function Online({ onBack }: { onBack: () => void }) {
         setInLobby(false);
       }
       setGame((g) => (g && g.no === m.game ? g : { no: m.game, state: m.state }));
+      if (m.state.phase === 'over') {
+        snap.current = null;
+        saveLastGame(null);
+      }
       for (const f of stateSubs.current) f(m.state);
     } else if (m.t === 'emote') {
       for (const f of emoteSubs.current) f(m.from, m.id);
@@ -65,8 +98,25 @@ export function Online({ onBack }: { onBack: () => void }) {
         conn.current = null;
         setStatus({ k: 'form' });
       }
+    } else if (m.t === 'snapshot') {
+      const r = roomRef.current;
+      if (!r || r.code !== m.code) return;
+      snap.current = { server, code: m.code, token: r.token, blob: m.blob, at: Date.now() };
+      saveLastGame(snap.current);
+      restoreTried.current = false;
     } else if (m.t === 'closed') {
+      // The server doesn't know this game any more (it restarted): hand it our sealed snapshot to bring it back.
+      const r = roomRef.current;
+      const g = snap.current;
+      if (r && g && g.code === r.code && !restoreTried.current) {
+        restoreTried.current = true;
+        conn.current?.send({ t: 'restore', v: PROTOCOL, token: g.token, blob: g.blob });
+        return;
+      }
       setError(m.msg);
+      snap.current = null;
+      saveLastGame(null);
+      setLastGame(null);
       leaveAll();
     }
   };
@@ -87,7 +137,8 @@ export function Online({ onBack }: { onBack: () => void }) {
   // Lost the connection mid-game: come back to the same seat with our token.
   const reconnect = async () => {
     setReconnecting(true);
-    for (let i = 0; i < 20 && !cancelled.current; i++) {
+    // A restarting server can take a few minutes to come back.
+    for (let i = 0; i < 60 && !cancelled.current; i++) {
       await new Promise((r) => setTimeout(r, i ? 3000 : 800));
       const r = roomRef.current;
       if (!r) return;
@@ -103,6 +154,30 @@ export function Online({ onBack }: { onBack: () => void }) {
     setReconnecting(false);
     setError('Could not reconnect to the game.');
     leaveAll();
+  };
+
+  // Back into the last online game after closing the app (or a long server restart).
+  const resume = async () => {
+    const g = loadLastGame();
+    if (!g) return setLastGame(null);
+    setError('');
+    cancelled.current = false;
+    setStatus({ k: 'waking', secs: 0, what: 'join' });
+    try {
+      await wakeServer(g.server, (secs) => setStatus({ k: 'waking', secs, what: 'join' }), () => cancelled.current);
+      setStatus({ k: 'connecting' });
+      const c = await Connection.open(g.server);
+      // Act as if we were in the room: rejoin, or bring the game back if the server lost it.
+      roomRef.current = { t: 'room', code: g.code, seat: 0, token: g.token, host: false, hostSeat: 0, seats: [], playing: true };
+      snap.current = g;
+      restoreTried.current = false;
+      attach(c);
+      c.send({ t: 'rejoin', v: PROTOCOL, code: g.code, token: g.token });
+    } catch (e) {
+      if (cancelled.current) return;
+      setStatus({ k: 'form' });
+      setError(e instanceof Error ? e.message : 'Could not reach the server.');
+    }
   };
 
   const go = async (what: 'host' | 'join') => {
@@ -346,6 +421,27 @@ export function Online({ onBack }: { onBack: () => void }) {
           </label>
         </section>
         <section className="setup-col" aria-labelledby="on-host">
+          {lastGame && (
+            <div className="resume-box">
+              <b>Your last game (room {lastGame.code}) can be resumed.</b>
+              <span className="muted">Use this if the app closed or the server restarted mid-game.</span>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" className="btn primary" disabled={busy} onClick={resume}>
+                  Resume game
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => {
+                    saveLastGame(null);
+                    setLastGame(null);
+                  }}
+                >
+                  Forget it
+                </button>
+              </div>
+            </div>
+          )}
           <h2 id="on-host">2 · Host a game</h2>
           <p className="muted" style={{ margin: 0, lineHeight: 1.45 }}>Creates a room and gives you a code to share. You start the game when everyone is in.</p>
           <button type="button" className="btn primary big" disabled={busy} onClick={() => go('host')}>

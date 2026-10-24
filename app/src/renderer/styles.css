@@ -868,3 +868,5 @@ p.small, .muted.small { font-size: 13px; margin: 0; }
 .mp-total { max-width: 340px; }
 .mp-total .mp-two { min-width: 0; }
 .mp-total .mp-two small.mp-paytext { color: #f6d27a; font-weight: 700; max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.resume-box { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 12px; background: #173039; border: 1px solid #3e9db8; margin-bottom: 8px; }

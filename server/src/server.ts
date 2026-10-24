@@ -1,7 +1,8 @@
 // ManaPool online game server: rooms with a 4-letter code, up to 4 people, empty seats played by bots.
 // The server runs the real rules engine; each player is sent only what they may see (viewFor).
 import { createServer } from 'node:http';
-import { randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import { WebSocketServer, WebSocket } from 'ws';
 import { apply, botAction, createGame, getDef, PRECON_DEFS, preconCards, validateDeck, viewFor, whoMustAct } from '../../engine/src/index.ts';
 import type { Action, GameState, PlayerId } from '../../engine/src/index.ts';
@@ -36,6 +37,63 @@ interface Room {
   gameNo: number;
   timer: ReturnType<typeof setTimeout> | null;
   emptySince: number | null;
+  snapSeq: number; // how many snapshots were sealed for this room
+  lastSnap: number; // when the last one went out
+  lastSnapTurn: number;
+  restoredSeq?: number; // restored from a snapshot with this number…
+  movedSinceRestore?: boolean; // …and the game has moved on since
+}
+
+// ---------- surviving a restart ----------
+// Every few seconds (and when the server is told to stop) each player receives a sealed snapshot of the whole room.
+// Only this server can open it (AES-GCM with a key from the SNAPSHOT_KEY setting), so nobody can peek at hidden cards.
+// If the server restarts and loses the room, the players' apps send the snapshot back and the game continues.
+const SNAP_KEY = createHash('sha256').update(process.env.SNAPSHOT_KEY || randomBytes(32).toString('hex')).digest();
+if (!process.env.SNAPSHOT_KEY) console.warn('SNAPSHOT_KEY is not set: games cannot be restored after a restart.');
+
+interface Snapshot {
+  v: number;
+  seq: number;
+  code: string;
+  host: number;
+  gameNo: number;
+  seats: Omit<Seat, 'ws' | 'leftAt' | 'lastEmote'>[];
+  game: GameState;
+}
+
+function seal(r: Room): string | null {
+  if (!r.game) return null;
+  const game = { ...r.game, log: r.game.log.slice(-300) };
+  const data: Snapshot = { v: PROTOCOL, seq: ++r.snapSeq, code: r.code, host: r.host, gameNo: r.gameNo, seats: r.seats.map((s) => ({ kind: s.kind, name: s.name, deck: s.deck, deckName: s.deckName, field: s.field, token: s.token, ready: false, botDeck: s.botDeck })), game };
+  const iv = randomBytes(12);
+  const c = createCipheriv('aes-256-gcm', SNAP_KEY, iv);
+  const body = Buffer.concat([c.update(gzipSync(JSON.stringify(data))), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), body]).toString('base64');
+}
+
+function unseal(blob: string): Snapshot | null {
+  try {
+    const buf = Buffer.from(blob, 'base64');
+    const d = createDecipheriv('aes-256-gcm', SNAP_KEY, buf.subarray(0, 12));
+    d.setAuthTag(buf.subarray(12, 28));
+    const json = gunzipSync(Buffer.concat([d.update(buf.subarray(28)), d.final()])).toString('utf8');
+    const s = JSON.parse(json) as Snapshot;
+    return s.v === PROTOCOL && s.game && Array.isArray(s.seats) ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Sends the players a fresh snapshot when the turn changed or some time has passed. */
+function snapshotTo(r: Room, force = false) {
+  if (!r.game || r.game.phase === 'over') return;
+  const now = Date.now();
+  if (!force && r.game.turn === r.lastSnapTurn && now - r.lastSnap < 8000) return;
+  const blob = seal(r);
+  if (!blob) return;
+  r.lastSnap = now;
+  r.lastSnapTurn = r.game.turn;
+  for (const s of r.seats) if (s.kind === 'human') send(s.ws, { t: 'snapshot', code: r.code, blob });
 }
 
 const rooms = new Map<string, Room>();
@@ -90,6 +148,7 @@ function sendRoom(r: Room) {
 function sendState(r: Room) {
   if (!r.game) return;
   r.seats.forEach((s, i) => send(s.ws, { t: 'state', state: viewFor(r.game!, i), game: r.gameNo }));
+  snapshotTo(r);
 }
 
 /** Seats a bot plays: real bots, and players who dropped and didn't come back in time. */
@@ -130,6 +189,7 @@ function drive(r: Room) {
           return;
         }
       }
+      r.movedSinceRestore = true;
       sendState(r);
       if (r.game.phase === 'over') sendRoom(r);
       drive(r);
@@ -212,7 +272,7 @@ function handle(ws: WebSocket, m: ClientMsg) {
       const bad = checkLoadout(m);
       if (bad) return send(ws, { t: 'error', msg: bad });
       if (at) leave(ws, false);
-      const r: Room = { code: newCode(), seats: Array.from({ length: SEATS }, openSeat), host: 0, game: null, gameNo: 0, timer: null, emptySince: null };
+      const r: Room = { code: newCode(), seats: Array.from({ length: SEATS }, openSeat), host: 0, game: null, gameNo: 0, timer: null, emptySince: null, snapSeq: 0, lastSnap: 0, lastSnapTurn: -1 };
       rooms.set(r.code, r);
       seatHuman(r, 0, m, ws);
       return sendRoom(r);
@@ -244,6 +304,35 @@ function handle(ws: WebSocket, m: ClientMsg) {
       sendState(r);
       return drive(r);
     }
+    case 'restore': {
+      if (m.v !== PROTOCOL) return send(ws, { t: 'error', msg: 'Your ManaPool version is different from the server. Please update the game.' });
+      const d = typeof m.blob === 'string' ? unseal(m.blob) : null;
+      const i = d ? d.seats.findIndex((s) => s.kind === 'human' && s.token && s.token === m.token) : -1;
+      if (!d || i < 0) return send(ws, { t: 'closed', msg: 'That game could not be brought back.' });
+      let r = rooms.get(d.code);
+      if (!r) {
+        // The server lost this room (restart): rebuild it. Everyone else gets the usual time to come back.
+        r = { code: d.code, host: d.host, gameNo: d.gameNo, game: d.game, timer: null, emptySince: null, snapSeq: d.seq, lastSnap: 0, lastSnapTurn: -1, restoredSeq: d.seq, movedSinceRestore: false, seats: d.seats.map((s) => ({ ...s, ws: null, leftAt: s.kind === 'human' ? Date.now() : null, lastEmote: 0 })) };
+        r.game!.log.push(`[T${r.game!.turn}] The server restarted; the game was brought back.`);
+        rooms.set(r.code, r);
+      } else if (r.restoredSeq !== undefined && d.seq > r.restoredSeq && !r.movedSinceRestore) {
+        // Someone brought it back from an older snapshot a moment ago: this one is newer.
+        r.game = d.game;
+        r.restoredSeq = d.seq;
+        r.snapSeq = Math.max(r.snapSeq, d.seq);
+      }
+      const s = r.seats[i];
+      if (!s || s.kind !== 'human' || s.token !== m.token) return send(ws, { t: 'closed', msg: 'That game is no longer available.' });
+      if (s.ws && s.ws !== ws) s.ws.close();
+      s.ws = ws;
+      s.leftAt = null;
+      where.set(ws, { room: r, seat: i });
+      r.emptySince = null;
+      sendRoom(r);
+      sendState(r);
+      snapshotTo(r, true);
+      return drive(r);
+    }
     case 'start': {
       if (!at) return;
       if (at.room.host !== at.seat) return send(ws, { t: 'error', msg: 'Only the host can start the game.' });
@@ -261,6 +350,7 @@ function handle(ws: WebSocket, m: ClientMsg) {
       } catch (e) {
         return send(ws, { t: 'error', msg: e instanceof Error ? e.message : 'That move is not allowed.' });
       }
+      at.room.movedSinceRestore = true;
       sendState(at.room);
       if (at.room.game.phase === 'over') sendRoom(at.room);
       return drive(at.room);
@@ -361,3 +451,14 @@ setInterval(() => {
 }, 25_000);
 
 http.listen(PORT, () => console.log(`ManaPool server on :${PORT}`));
+
+// Render stops the server (new version, or the free plan sleeping): hand everyone a last snapshot first.
+let stopping = false;
+function stop() {
+  if (stopping) return;
+  stopping = true;
+  for (const r of rooms.values()) snapshotTo(r, true);
+  setTimeout(() => process.exit(0), 700);
+}
+process.on('SIGTERM', stop);
+process.on('SIGINT', stop);
