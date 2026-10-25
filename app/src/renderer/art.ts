@@ -17,6 +17,7 @@ export const ART = new Set([
   'demon-summoner',
   'demon-1',
   'demon-bard',
+  'charitable-demon',
 ]);
 
 export const artUrl = (id: string) => `assets/art/${id}.jpg`;
