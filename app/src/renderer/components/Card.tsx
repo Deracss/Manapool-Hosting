@@ -1,5 +1,6 @@
 // Draws a card in the ManaPool "banner" frame: text only, no art. Cards are laid out at full size (340×476) and scaled.
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react';
+import { ART, artUrl } from '../art';
 import { emblemFor } from '../emblems';
 import { ME } from '../me';
 import { attackOf, defenseOf, defOf, getDef, keywordsOf } from '../engine';
@@ -31,6 +32,7 @@ export interface CardShow {
   baseAtk?: number | string | null; // printed stats, when the card is in play
   baseDef?: number | string | null;
   notes?: string[]; // current state, for the inspect popup
+  art?: string; // full-art image (card id), when the card has art
 }
 
 const THEMES: Record<string, Record<string, string>> = {
@@ -71,6 +73,7 @@ export function showDef(d: CardDef, number?: number): CardShow {
   const kws = (d.script.keywords ?? []) as string[];
   return {
     name: d.name,
+    art: ART.has(d.id) ? d.id : undefined,
     type: d.type,
     tribe: d.tribe,
     cost: d.cost,
@@ -228,6 +231,8 @@ export function Card({ show, scale = 1, tapped, ring, dim, label, iid, tag, tagT
           <div className="orbbig" />
         </div>
       </div>
+    ) : show.art ? (
+      <FullArtFace c={show} />
     ) : (
       <CardFace c={show} />
     );
@@ -340,6 +345,78 @@ function CardFace({ c }: { c: CardShow }) {
       ) : (
         <div className="footnum">{c.number ?? ''}</div>
       )}
+    </div>
+  );
+}
+
+const FA_LIGHT: Record<string, string> = { Creature: '#f3d58a', Token: '#f3d58a', Artifact: '#d6dbe4', Spell: '#9cc0ff', Incantation: '#ff9c8a', Anthem: '#f4ecd6', Field: '#9fd7a8' };
+
+/** Full-art frame: the art fills the card; the top and bottom darken behind the name and the text. */
+function FullArtFace({ c }: { c: CardShow }) {
+  const th = THEMES[c.type] ?? THEMES.Creature;
+  const vars = { '--frame': th.frame, '--edge': th.edge, '--light': FA_LIGHT[c.type] ?? '#f3d58a' } as CSSProperties;
+  const kws = c.keywords ?? [];
+  const reminder = !c.text.trim() && kws.length ? meaningOf(kws[0].k) : null;
+  const weight = c.text.length + 30 * Math.max(0, c.text.split('\n').length - 1) + (kws.length ? 40 : 0);
+  const textSize = weight <= 70 ? 19 : weight <= 130 ? 17.5 : weight <= 190 ? 16 : 14.5;
+  const hasStats = c.atk !== null && c.atk !== undefined;
+  // Less text: the fade starts lower, so more of the art shows.
+  const fadeFrom = weight <= 60 ? 64 : weight <= 110 ? 58 : weight <= 170 ? 52 : 46;
+  const comma = c.name.indexOf(', ');
+  const [title, epithet] = comma > 0 ? [c.name.slice(0, comma), c.name.slice(comma + 2)] : [c.name, ''];
+  const nameSize = title.length <= 14 ? 25 : title.length <= 20 ? 22 : 19;
+  return (
+    <div className="card fullart" style={vars}>
+      <img className="fa-art" src={artUrl(c.art!)} alt="" draggable={false} />
+      <div className="fa-shade" style={{ background: `linear-gradient(180deg, rgba(5,6,9,0.8) 0, rgba(5,6,9,0) 92px, rgba(5,6,9,0) ${fadeFrom}%, rgba(5,6,9,0.86) ${fadeFrom + 18}%, rgba(5,6,9,0.96) 100%)` }} />
+      <div className="fa-rim" />
+      <div className="fa-top">
+        <div className={`fa-name${c.placeholderName ? ' ph' : ''}`} style={{ fontSize: nameSize }}>
+          {title}
+          {epithet && <span className="fa-epithet">{epithet}</span>}
+        </div>
+        {c.cost !== null && c.cost !== undefined && <div className="fa-cost">{c.cost}</div>}
+      </div>
+      <div className="fa-bottom">
+        <div className="fa-type">
+          <span>{typeLineOf(c).toUpperCase()}</span>
+          {c.incantation && (
+            <svg role="img" aria-label="Incantation speed" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ flex: 'none' }}>
+              <path d="M13.5 2 4.5 13.5h6L9.5 22l9-12h-6l1-8z" />
+            </svg>
+          )}
+          <i />
+        </div>
+        {kws.length > 0 && (
+          <div className="fa-kw">
+            {kws.map((k, i) => (
+              <span key={k.k} className={k.granted ? 'granted' : ''}>
+                {i > 0 && <i className="sep"> · </i>}
+                {k.k}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="fa-text" style={{ fontSize: textSize }}>
+          {c.text.trim() ? <RulesText text={c.text} /> : reminder ? <p className="reminder">{reminder}</p> : null}
+        </div>
+        {hasStats && (
+          <div className="fa-stats">
+            <small>ATK</small>
+            <span className={c.atkMod ?? ''}>{c.atk}</span>
+            <i />
+            <span className={c.defMod ?? ''}>{c.def}</span>
+            <small>DEF</small>
+          </div>
+        )}
+      </div>
+      {c.crack ? (
+        <svg className="cracks" viewBox="0 0 340 476" aria-hidden="true">
+          <path d="M60 120 l40 50 -25 40 45 55 -15 45 M100 170 l60 -20 M120 265 l-50 30" />
+          {c.crack > 0.34 && <path d="M260 90 l-35 60 30 35 -40 70 20 50 M255 185 l45 20 M215 255 l-40 -10" />}
+          {c.crack > 0.67 && <path d="M170 300 l-20 50 35 30 -30 60 M150 350 l-55 15 M185 380 l50 -5 M120 60 l30 40 -10 30" />}
+        </svg>
+      ) : null}
     </div>
   );
 }

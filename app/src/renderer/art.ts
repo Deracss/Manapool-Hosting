@@ -1,0 +1,21 @@
+// Cards with full art (assets/art/<card id>.jpg, 680×952). Those cards use the full-art frame; the rest keep the banner frame.
+export const ART = new Set([
+  'soul-collector',
+  'paimon-great-king-of-hell',
+  'lilith-queen-of-demons',
+  'beelzebub-lord-of-the-flies',
+  'deathly-reconjurer',
+  'dreaded-lineage',
+  'krr-ask-virulent-contagion',
+  'sleight-of-hand',
+  'demon-shade',
+  'chained-demon',
+  'corrupted-artificer',
+  'evil-spirit',
+  'necromantic-summoner',
+  'isolated-sentinel',
+  'demon-summoner',
+  'demon-1',
+]);
+
+export const artUrl = (id: string) => `assets/art/${id}.jpg`;
