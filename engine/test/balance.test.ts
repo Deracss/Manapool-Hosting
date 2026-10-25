@@ -449,3 +449,10 @@ test('the bots can play a whole game with the new cards', () => {
   void whoMustAct;
   void passRound;
 });
+
+test('Soul Collector: a Soul on COMMAND and on OFFER (Oct 24, 2026)', () => {
+  let s = setup({ players: 2 });
+  put(s, 0, 'Soul Collector');
+  s = resolveAll(play(s, 0, 'Demon Shade', [], 10), { confirm: true });
+  assert.equal(s.players[0].souls, 2, '+1 contract, +1 Soul Collector');
+});

@@ -412,9 +412,9 @@ export const demonScripts: Record<string, CardScript> = {
   'demon-summoner': {
     triggers: [{ label: 'Demon Token', on: 'contract', condition: { soulsAtLeast: 10 }, effects: [{ do: 'createToken', token: 'demon-token', n: 1 }] }],
   },
-  // ON COMMAND - Gain a Soul.
+  // ON COMMAND or ON OFFER - Gain a Soul. (Oct 24, 2026: also on OFFER.)
   'soul-collector': {
-    triggers: [{ label: 'Gain a Soul', on: 'contract', condition: { and: [{ eventPlayerIsYou: true }, { eventKind: 'command' }] }, effects: [{ do: 'gainSouls', n: 1 }] }],
+    triggers: [{ label: 'Gain a Soul', on: 'contract', condition: { and: [{ eventPlayerIsYou: true }, { or: [{ eventKind: 'command' }, { eventKind: 'offer' }] }] }, effects: [{ do: 'gainSouls', n: 1 }] }],
   },
   // ETB - COMMAND target player to give you selected creature. Untap it. ON OFFER OR COMMAND - You may draw 1 card.
   'lilith-queen-of-demons': {

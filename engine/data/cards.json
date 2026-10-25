@@ -3578,9 +3578,10 @@
       "attack": 2,
       "defense": 2,
       "keywordRefs": [
-        "COMMAND"
+        "COMMAND",
+        "OFFER"
       ],
-      "text": "ON COMMAND - Gain a Soul.",
+      "text": "ON COMMAND or ON OFFER - Gain a Soul.",
       "source": {
         "tab": "Demon",
         "row": 15

@@ -69,6 +69,7 @@ export function evalNum(s: GameState, n: Num, ctx: EffectCtx): number {
 
 export function evalCondition(s: GameState, c: Condition, ctx: EffectCtx): boolean {
   if ('and' in c) return c.and.every((x) => evalCondition(s, x, ctx));
+  if ('or' in c) return c.or.some((x) => evalCondition(s, x, ctx));
   if ('not' in c) return !evalCondition(s, c.not, ctx);
   if ('count' in c) return listMatching(s, c.count, ctx.controller, ctx.source).length >= c.atLeast;
   if ('isYourTurn' in c) return s.active === ctx.controller;

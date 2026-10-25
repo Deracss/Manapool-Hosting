@@ -119,6 +119,7 @@ export type Condition =
   | { varSet: string } // a card was chosen into this variable
   | { attackInProgress: true } // a creature is attacking right now
   | { and: Condition[] }
+  | { or: Condition[] }
   | { not: Condition };
 
 export type Duration = 'battle' | 'turn' | 'permanent';

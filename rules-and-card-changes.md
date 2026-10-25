@@ -82,6 +82,9 @@ Everything changed or clarified from the original rules PDF and Cards.xlsx, as u
 - **Tavern:** also: the first boost each of your creatures gets in a battle from a creature of its own tribe counts for 1 more.
 - **Vendor Street:** removed (same as Anthem #1).
 
+**Oct 24, 2026**
+- **Soul Collector:** now ON COMMAND **or ON OFFER** - Gain a Soul (an accepted OFFER counts).
+
 **Newly implemented (Oct 22, 2026)**
 
 | Card | How it works |
@@ -145,6 +148,7 @@ Dragonheart Incubation waits for BOND (Dragons and Dragon Riders).
 | Isolde, Bloodborne Mistress | When this creature clashes with a creature, create a token copy of that creature. The copy is a Vampire. |
 | Arsen, Vampire Familiar | Once during your turn, you may equip this to another Vampire you control. Equipped Vampire gains +1/1 and FACEOFF. While equipped, this is an Artifact, not a Creature. |
 | Atredes, Vampire Overlord | DMG GAIN, FACEOFF. At the end of your turn, if your attacking Vampires this turn had 9+ total attack (boosts included), create a 0/3 Vampire Token with DMG GAIN. |
+| Soul Collector | ON COMMAND or ON OFFER - Gain a Soul. |
 | Alucard, Prince of the Night | FACEOFF. Whenever this creature destroys a creature in combat, target Vampire gains +1/1. |
 | City Night (Field) | Your creatures with at least +4 attack above their printed attack gain EVASIVE. |
 | Krr'ask, Virulent Contagion | Tap: INFECT target tapped creature. |
