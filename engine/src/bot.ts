@@ -34,10 +34,11 @@ function keepValue(d: CardDef, mana: number): number {
   return v;
 }
 
-export function botAction(s: GameState): Action {
+export function botAction(s: GameState, rollFor?: PlayerId): Action {
   const pid = whoMustAct(s);
   if (pid === null) throw new Error('Nobody needs to act.');
   const p = s.players[pid];
+  if (s.phase === 'mulligan' && s.roll && !s.roll.done) return { type: 'roll', player: rollFor ?? pid };
   if (s.phase === 'mulligan') return { type: 'keep', player: pid };
 
   const d = s.decision;

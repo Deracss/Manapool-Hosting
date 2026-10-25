@@ -59,6 +59,7 @@ export function Online({ onBack }: { onBack: () => void }) {
   const stateSubs = useRef(new Set<(s: GameState) => void>());
   const pingSubs = useRef(new Set<(from: PlayerId, sel: string, kind: PingKind) => void>());
   const emoteSubs = useRef(new Set<(from: PlayerId, id: number) => void>());
+  const reactSubs = useRef(new Set<(from: PlayerId, iid: string) => void>());
   const [inLobby, setInLobby] = useState(false);
   const [lastGame, setLastGame] = useState<LastGame | null>(() => loadLastGame());
   const snap = useRef<LastGame | null>(loadLastGame());
@@ -89,6 +90,8 @@ export function Online({ onBack }: { onBack: () => void }) {
       for (const f of stateSubs.current) f(m.state);
     } else if (m.t === 'emote') {
       for (const f of emoteSubs.current) f(m.from, m.id);
+    } else if (m.t === 'react') {
+      for (const f of reactSubs.current) f(m.from, m.iid);
     } else if (m.t === 'ping') {
       for (const f of pingSubs.current) f(m.from, m.sel, m.kind as PingKind);
     } else if (m.t === 'error') {
@@ -238,6 +241,11 @@ export function Online({ onBack }: { onBack: () => void }) {
       onPing: (cb) => {
         pingSubs.current.add(cb);
         return () => pingSubs.current.delete(cb);
+      },
+      react: (iid, code) => conn.current?.send({ t: 'react', iid, code }),
+      onReact: (cb) => {
+        reactSubs.current.add(cb);
+        return () => reactSubs.current.delete(cb);
       },
       backToLobby: () => setInLobby(true),
       emote: (id) => conn.current?.send({ t: 'emote', id }),

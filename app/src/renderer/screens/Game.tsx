@@ -2,7 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { ME, setSeat } from '../me';
 import type { MouseEvent } from 'react';
 import { Card, showDef, showInGame } from '../components/Card';
-import { attackOf, attackBoostTotal, boostValue, defenseBoostTotal, keywordsOf, botAction, cardIdByName, chargesAllowed, createGame, defenseOf, getDef, hasKeyword, hasStatic, isCreature, newInstance, whoMustAct } from '../engine';
+import { rollPending, attackOf, attackBoostTotal, boostValue, defenseBoostTotal, keywordsOf, botAction, cardIdByName, chargesAllowed, createGame, defenseOf, getDef, hasKeyword, hasStatic, isCreature, newInstance, whoMustAct } from '../engine';
 import { setHovered } from '../hover';
 import type { Action, GameState, Iid, PlayerId } from '../engine';
 import { fieldOptions, firstCombo, handOptions, nothingToRespondWith, targetPrompts, tryApply } from '../legal';
@@ -18,6 +18,8 @@ import { configureSound, playSound } from '../sound';
 import { EMOTES } from '../net';
 import { playMusic, setMusicVolume, stopMusic } from '../music';
 import { meaningOf } from '../glossary';
+import { DiceRoll } from './Dice';
+import { forgetOwner, loadArmed, ownerCode, ReactionScene, REACTION_CAPTION, saveArmed, unlockOwner } from './Reaction';
 import { describeTarget, ifNobodyResponds, meaningfulLines, stackItemCards, stackItemTitle } from '../preview';
 
 
@@ -43,7 +45,7 @@ type Targeting = { title: string; prompts: string[]; slots: string[][]; picked: 
 function startGame(setup: GameSetup): GameState {
   return createGame({
     seed: setup.seed,
-    startingPlayer: setup.first ?? 0,
+    rollForFirst: true,
     players: [setup.me, ...setup.bots].map((p) => ({ name: p.name, deck: p.deck, field: p.field })),
   });
 }
@@ -58,12 +60,15 @@ export interface OnlineLink {
   act: (a: Action) => void;
   ping: (sel: string, kind: PingKind, label: string) => void;
   onPing: (cb: (from: PlayerId, sel: string, kind: PingKind) => void) => () => void;
+  /** The owner's reaction to a cast (the server checks the code). */
+  react?: (iid: Iid, code: string) => void;
+  onReact?: (cb: (from: PlayerId, iid: Iid) => void) => () => void;
   backToLobby: () => void;
   emote: (id: number) => void;
   onEmote: (cb: (from: PlayerId, id: number) => void) => () => void;
 }
 
-export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; online?: OnlineLink; onExit: () => void; onRematch: (mode: RematchMode, first: PlayerId) => void }) {
+export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; online?: OnlineLink; onExit: () => void; onRematch: (mode: RematchMode, take?: number) => void }) {
   const [s, setS] = useState<GameState>(() => {
     setSeat(online ? online.seat : 0, online ? online.name : 'You');
     return online ? online.initial : startGame(setup!);
@@ -114,18 +119,37 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   const midDown = useRef<{ timer: ReturnType<typeof setTimeout>; target: { sel: string; label: string }; x: number; y: number } | null>(null);
   // Concede (with a confirmation), the end-of-game effect, the hover preview and opened token stacks.
   const [confirmConcede, setConfirmConcede] = useState(false);
-  // A stronger start: a coin shows who goes first, then the opening hand is dealt card by card.
-  const [intro, setIntro] = useState(() => s.phase === 'mulligan');
+  // A stronger start: everyone throws a D20 to see who goes first, then the opening hand is dealt card by card.
+  const [intro, setIntro] = useState(() => s.phase === 'mulligan' && !!s.roll);
+  // The owner's reaction: unlocked by the owner code, armed with the switch, one per cast.
+  const [owner, setOwner] = useState<string | null>(() => ownerCode());
+  const [armed, setArmed] = useState(() => loadArmed());
+  const [scene, setScene] = useState<{ iid: Iid; by: PlayerId; key: number } | null>(null);
+  const [reacted, setReacted] = useState<Set<Iid>>(new Set());
+  const [codeInput, setCodeInput] = useState('');
+  const [codeMsg, setCodeMsg] = useState('');
+  const react = (iid: Iid) => {
+    if (!owner || reacted.has(iid)) return;
+    setReacted((r) => new Set(r).add(iid));
+    setScene({ iid, by: ME, key: Date.now() });
+    online?.react?.(iid, owner);
+  };
+  useEffect(() => online?.onReact?.((from, iid) => setScene({ iid, by: from, key: Date.now() })), [online]);
+  // While armed, auto-pass waits a moment on an opponent's cast so there is time to react.
+  const topItem = s.stack[s.stack.length - 1];
+  const reactWindow = !!owner && armed && topItem?.kind === 'card' && topItem.controller !== ME && !reacted.has(topItem.iid);
+  // Bots throw their own dice, one after another.
+  const rollingNow = s.phase === 'mulligan' && !!s.roll && !s.roll.done;
   useEffect(() => {
-    if (!intro) return;
-    playSound('coin');
-    const a = setTimeout(() => playSound('coinLand'), 1150);
-    const b = setTimeout(() => setIntro(false), 2000);
-    return () => {
-      clearTimeout(a);
-      clearTimeout(b);
-    };
-  }, []);
+    if (online || !rollingNow) return;
+    const bot = rollPending(s).find((p) => p !== ME);
+    if (bot === undefined) return;
+    const t = setTimeout(() => {
+      const r = tryApply(s, { type: 'roll', player: bot });
+      if (r.ok) setS(r.state);
+    }, 700 + Math.random() * 900);
+    return () => clearTimeout(t);
+  }, [s]);
   const dealtFor = useRef<string>('');
   useEffect(() => {
     if (s.phase !== 'mulligan' || intro || whoMustAct(s) !== ME) return;
@@ -275,6 +299,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
   // Bots act on their own (after any play animation); your priority is skipped per your auto-pass settings.
   useEffect(() => {
     if (s.phase === 'over' || who === null || (!online && (menuOpen || fx.busy))) return;
+    if (rollingNow) return; // the dice have their own timing
     if (who !== ME) {
       if (online) return; // the server plays the bots; other people play for themselves
       let action: Action;
@@ -303,10 +328,10 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         }
         const r = tryApply(s, { type: 'pass', player: ME });
         if (r.ok) setS(r.state);
-      }, 160);
+      }, reactWindow ? 2800 : 160);
       return () => clearTimeout(t);
     }
-  }, [s, who, settings, menuOpen, fx.busy, autoPassNow, holdNext]);
+  }, [s, who, settings, menuOpen, fx.busy, autoPassNow, holdNext, reactWindow]);
 
   // A soft chime when the game turns to you after someone else acted (not when auto-pass will answer for you).
   const wasMine = useRef(false);
@@ -1111,7 +1136,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
       <header className="topbar">
         <span style={{ fontFamily: 'var(--display)', fontWeight: 700, letterSpacing: '0.06em' }}>MANAPOOL</span>
         <span className="muted" style={{ fontSize: 15 }}>
-          Turn {s.turn} · <b style={{ color: s.active === ME ? 'var(--gold)' : 'var(--text)' }}>{s.active === ME ? 'Your turn' : `${s.players[s.active].name}'s turn`}</b>
+          {s.phase === 'mulligan' ? (s.roll && !s.roll.done ? 'Rolling for first' : <>Before the game · <b style={{ color: s.active === ME ? 'var(--gold)' : 'var(--text)' }}>{s.active === ME ? 'you go first' : `${s.players[s.active].name} goes first`}</b></>) : <>Turn {s.turn} · <b style={{ color: s.active === ME ? 'var(--gold)' : 'var(--text)' }}>{s.active === ME ? 'Your turn' : `${s.players[s.active].name}'s turn`}</b></>}
           {s.phase !== 'mulligan' && s.phase !== 'over' && (
             <span className="turn-clock" title="How long this turn has been going">
               <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l3 2M10 2h4" /></svg>
@@ -1434,6 +1459,22 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                   {settings.autoPass.passAll ? 'Skipping all responses · ON' : 'Skip all responses · OFF'}
                 </button>
               )}
+              {owner && s.phase !== 'over' && (
+                <button
+                  type="button"
+                  className={`btn rx-arm${armed ? ' on' : ''}`}
+                  style={{ height: 34, fontSize: 13 }}
+                  aria-pressed={armed}
+                  title="Only you see this. While armed, a React! button appears on every opponent's cast in the stack."
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setArmed(!armed);
+                    saveArmed(!armed);
+                  }}
+                >
+                  <span className="rx-dot" />🎙 {armed ? 'Reaction armed' : 'Reaction off'}
+                </button>
+              )}
               {(autoPassNow || who !== ME) && !settings.autoPass.passAll && s.phase !== 'over' && s.phase !== 'mulligan' && (
                 <button type="button" className="btn ghost" style={{ height: 34, fontSize: 13 }} aria-pressed={holdNext} onClick={(e) => { e.stopPropagation(); setHoldNext(!holdNext); }}>
                   {holdNext ? 'Will stop at your next chance' : 'Stop at the next chance'}
@@ -1477,6 +1518,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
             onPick={(iid) => {
               pickTarget(iid);
             }}
+            react={owner && armed ? { can: (it) => it.kind === 'card' && it.controller !== ME && !reacted.has(it.iid), go: react } : undefined}
           />
           <LogPanel s={s} onHoverName={(iid) => { setHighlight(iid); if (iid) setPreview({ iid }); }} />
         </aside>
@@ -1692,14 +1734,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
         </div>
       )}
 
-      {intro && (
-        <div className="coin-intro" aria-live="polite" onClick={() => setIntro(false)} title="Click to skip">
-          <div className="coin">
-            <span>{s.active === ME ? 'Y' : s.players[s.active].name[0]}</span>
-          </div>
-          <b className="coin-text">{s.active === ME ? 'You go first' : `${s.players[s.active].name} goes first`}</b>
-        </div>
-      )}
+      {intro && s.roll && <DiceRoll s={s} me={ME} roll={() => step({ type: 'roll', player: ME })} onDone={() => setIntro(false)} />}
 
       {mulligan && !intro && (
         <div className="modal-back">
@@ -1774,7 +1809,7 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
           onExit={onExit}
           setup={setup}
           online={online}
-          onRematch={(mode) => onRematch(mode, winner?.id === ME ? 1 + Math.floor(Math.random() * 3) : ME)}
+          onRematch={(mode, take) => onRematch(mode, take)}
           onWatch={() => setWatching(true)}
         />
       )}
@@ -1846,6 +1881,22 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
                 </label>
               ))}
             </fieldset>
+            <fieldset style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <legend className="label" style={{ marginBottom: 8 }}>OWNER REACTION</legend>
+              {owner ? (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span>Unlocked · caption <b>{REACTION_CAPTION}</b></span>
+                  <button type="button" className="chip" onClick={() => { setMenuOpen(false); const any = Object.keys(s.cards).find((k) => s.players.some((p) => p.hand.includes(k) || p.field.includes(k)) && s.cards[k].cardId !== 'hidden'); if (any) setScene({ iid: any, by: ME, key: Date.now() }); }}>▶ Preview</button>
+                  <button type="button" className="chip" onClick={() => { forgetOwner(); setOwner(null); }}>Lock</button>
+                </div>
+              ) : (
+                <form style={{ display: 'flex', gap: 8 }} onSubmit={async (e) => { e.preventDefault(); if (await unlockOwner(codeInput)) { setOwner(ownerCode() ?? codeInput.trim().toUpperCase()); setCodeMsg(''); setCodeInput(''); } else setCodeMsg('That code is not right.'); }}>
+                  <input type="password" className="field-input" placeholder="Owner code" aria-label="Owner code" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} style={{ flex: 1 }} />
+                  <button type="submit" className="btn" style={{ height: 38 }}>Unlock</button>
+                </form>
+              )}
+              {codeMsg && <span className="muted" style={{ color: 'var(--red, #e2705f)', fontSize: 13 }}>{codeMsg}</span>}
+            </fieldset>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               {s.phase !== 'over' && !me.eliminated && s.phase !== 'mulligan' && (
                 <button type="button" className="btn danger ghost" style={{ marginRight: 'auto' }} onClick={() => setConfirmConcede(true)}>
@@ -1862,6 +1913,8 @@ export function Game({ setup, online, onExit, onRematch }: { setup?: GameSetup; 
           </div>
         </div>
       )}
+
+      {scene && <ReactionScene key={scene.key} s={s} iid={scene.iid} by={scene.by} onEnd={() => setScene(null)} />}
 
       {toast && (
         <div className="toast" role="alert">
@@ -1956,12 +2009,14 @@ function Glossed({ text }: { text: string }) {
 }
 
 /** Victory or defeat: how the game went. */
-function EndScreen({ s, outs, won, over, setup, online, onExit, onRematch, onWatch }: { s: GameState; outs: OutInfo[]; won: boolean; over: boolean; setup?: GameSetup; online?: OnlineLink; onExit: () => void; onRematch: (mode: RematchMode) => void; onWatch: () => void }) {
+function EndScreen({ s, outs, won, over, setup, online, onExit, onRematch, onWatch }: { s: GameState; outs: OutInfo[]; won: boolean; over: boolean; setup?: GameSetup; online?: OnlineLink; onExit: () => void; onRematch: (mode: RematchMode, take?: number) => void; onWatch: () => void }) {
+  const [picking, setPicking] = useState(false);
+  const [take, setTake] = useState(1);
   const tribe = (name: string) => name.replace(/\s*(precon|deck)$/i, '');
   const seats = setup ? [setup.me, ...setup.bots] : [];
   const options: { mode: RematchMode; title: string; sub: string }[] = !setup ? [] : [
     { mode: 'same', title: 'Same decks', sub: `${tribe(setup.me.deckName)} vs ${setup.bots.map((b) => tribe(b.deckName)).join(', ')} again` },
-    { mode: 'swap', title: 'Swap decks', sub: `Every deck moves one seat left: you take ${seats[1].name}'s ${tribe(seats[1].deckName)}` },
+    { mode: 'swap', title: 'Swap decks…', sub: 'Choose the deck you take; the one you leave goes to its player' },
     { mode: 'random', title: 'New random decks', sub: 'Everyone gets a random precon' },
   ];
   const me = s.players[ME];
@@ -2015,13 +2070,35 @@ function EndScreen({ s, outs, won, over, setup, online, onExit, onRematch, onWat
         {!online && <span className="label" style={{ color: 'var(--gold)', marginTop: 6 }}>PLAY AGAIN</span>}
         {!online && <div className="es-rematch">
           {options.map((o, i) => (
-            <button key={o.mode} type="button" className={`btn${i === 0 ? ' primary' : ''}`} onClick={() => onRematch(o.mode)} autoFocus={i === 0}>
+            <button key={o.mode} type="button" className={`btn${i === 0 ? ' primary' : ''}`} onClick={() => (o.mode === 'swap' ? setPicking(true) : onRematch(o.mode))} autoFocus={i === 0}>
               <b>{o.title}</b>
               <span>{o.sub}</span>
             </button>
           ))}
         </div>}
-        {!online && <p className="muted" style={{ fontSize: 13, margin: 0 }}>{won ? 'A random opponent goes first.' : 'You go first.'}</p>}
+        {!online && <p className="muted" style={{ fontSize: 13, margin: 0 }}>Everyone rolls a D20 to see who goes first.</p>}
+        {picking && setup && (
+          <div className="modal-back swap-pick-back" onClick={() => setPicking(false)}>
+            <div className="modal swap-pick" role="dialog" aria-labelledby="sp-h" onClick={(e) => e.stopPropagation()}>
+              <span className="es-kicker">SWAP DECKS</span>
+              <h2 id="sp-h">Which deck do you take?</h2>
+              <div className="swap-list">
+                {setup.bots.map((b, i) => (
+                  <button key={i} type="button" className={`swap-deck${take === i + 1 ? ' sel' : ''}`} aria-pressed={take === i + 1} onClick={() => setTake(i + 1)} onDoubleClick={() => onRematch('swap', i + 1)}>
+                    <span className={`swap-chip tribe-${tribe(b.deckName).split(' ')[0].toLowerCase()}`} />
+                    <span className="swap-txt"><b>{b.deckName}</b><small>{b.name}'s deck this game</small></span>
+                    {take === i + 1 && <span className="swap-check">✓</span>}
+                  </button>
+                ))}
+              </div>
+              <p className="muted" style={{ fontSize: 13, margin: 0 }}>Your {tribe(setup.me.deckName)} goes to {setup.bots[take - 1]?.name}; the others keep theirs.</p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn" onClick={() => setPicking(false)}>Back</button>
+                <button type="button" className="btn primary" autoFocus onClick={() => onRematch('swap', take)}>Play with {setup.bots[take - 1]?.deckName}</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button type="button" className="btn" onClick={onExit}>
             Main menu

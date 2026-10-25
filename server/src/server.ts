@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { WebSocketServer, WebSocket } from 'ws';
-import { apply, botAction, createGame, getDef, PRECON_DEFS, preconCards, validateDeck, viewFor, whoMustAct } from '../../engine/src/index.ts';
+import { apply, botAction, createGame, rollPending, getDef, PRECON_DEFS, preconCards, validateDeck, viewFor, whoMustAct } from '../../engine/src/index.ts';
 import type { Action, GameState, PlayerId } from '../../engine/src/index.ts';
 import { PROTOCOL } from './protocol.ts';
 import type { ClientMsg, Loadout, SeatInfo, ServerMsg } from './protocol.ts';
@@ -13,6 +13,7 @@ const PORT = Number(process.env.PORT ?? 10000);
 const SEATS = 4;
 const BOT_NAMES = ['Ben', 'Cat', 'Dev', 'Eli'];
 const GRACE_MS = 45_000; // a player who drops gets this long to come back before a bot plays for them
+const OWNER_HASH = 'c934b1c7bfda54cf2aa19ce4ded77e83134620f2c44c9176c1b01229d6ad19a6'; // SHA-256 of the owner code (the app keeps the same)
 const EMPTY_ROOM_MS = 10 * 60_000;
 
 interface Seat {
@@ -27,6 +28,7 @@ interface Seat {
   ready: boolean;
   botDeck: string | null; // for open / bot seats: the precon the host picked (null = random)
   lastEmote: number;
+  lastReact?: number;
 }
 
 interface Room {
@@ -162,6 +164,29 @@ function drive(r: Room) {
   r.timer = null;
   const g = r.game;
   if (!g || g.phase === 'over') return;
+  // The D20 roll: people throw their own die; bot seats roll on their own, one after another.
+  if (g.phase === 'mulligan' && g.roll && !g.roll.done) {
+    const bot = rollPending(g).find((i) => botPlays(r, i));
+    if (bot === undefined) {
+      // Someone who dropped gets their grace time, then a bot throws for them.
+      const gone = rollPending(g).map((i) => r.seats[i]).filter((x) => x.kind === 'human' && !x.ws && x.leftAt !== null);
+      if (gone.length) r.timer = setTimeout(() => drive(r), Math.max(...gone.map((x) => GRACE_MS - (Date.now() - x.leftAt!))) + 50);
+      return;
+    }
+    r.timer = setTimeout(() => {
+      r.timer = null;
+      if (r.game !== g) return;
+      try {
+        r.game = apply(g, { type: 'roll', player: bot });
+      } catch {
+        return;
+      }
+      r.movedSinceRestore = true;
+      sendState(r);
+      drive(r);
+    }, 900 + Math.floor(Math.random() * 700));
+    return;
+  }
   const who = whoMustAct(g);
   if (who === null) return;
   if (!botPlays(r, who)) {
@@ -219,7 +244,7 @@ function startGame(r: Room) {
   r.gameNo++;
   r.game = createGame({
     seed: Math.floor(Math.random() * 1e9),
-    startingPlayer: Math.floor(Math.random() * SEATS) as PlayerId,
+    rollForFirst: true,
     players: r.seats.map((s) => ({ name: s.name, deck: s.deck, field: s.field })),
   });
   sendRoom(r);
@@ -363,6 +388,19 @@ function handle(ws: WebSocket, m: ClientMsg) {
       g.log.push(`[T${g.turn}] ${at.room.seats[at.seat].name} pings ${String(m.label ?? '').slice(0, 80)}: ${kinds[m.kind]}`);
       at.room.seats.forEach((s, i) => i !== at.seat && send(s.ws, { t: 'ping', from: at.seat, sel: m.sel, kind: m.kind }));
       return sendState(at.room);
+    }
+    case 'react': {
+      // Only the owner (who knows the code) can send it; it shows the scene to everyone and changes nothing in the game.
+      if (!at || !at.room.game) return;
+      if (typeof m.code !== 'string' || createHash('sha256').update(m.code.trim().toUpperCase()).digest('hex') !== OWNER_HASH) return;
+      const g = at.room.game;
+      const item = g.stack.find((it) => it.kind === 'card' && it.iid === m.iid);
+      if (!item || item.controller === at.seat) return;
+      const s = at.room.seats[at.seat];
+      if (Date.now() - (s.lastReact ?? 0) < 3000) return;
+      s.lastReact = Date.now();
+      at.room.seats.forEach((x, i) => i !== at.seat && send(x.ws, { t: 'react', from: at.seat, iid: m.iid }));
+      return;
     }
     case 'emote': {
       if (!at) return;

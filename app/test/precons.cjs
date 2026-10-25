@@ -36,7 +36,7 @@ app.whenReady().then(async () => {
   await click('Construct Foundry');
   await click('Start game');
   await sleep(500);
-  for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
+  for (let k = 0; k < 120; k++) { await js(`(() => { const g = window.__manapool.state(); if (g.roll && !g.roll.done && g.roll.contenders.includes(0) && g.roll.results[0] === null) window.__manapool.act({ type: 'roll', player: 0 }); })()`); if ((await click('To the opening hands')) || (await click('Keep'))) break; await sleep(150); } for (let k = 0; k < 40 && !(await click('Keep')); k++) await sleep(150);
   for (let i = 0; i < 300 && !(await js(`document.body.innerText.includes('End Main phase')`)); i++) await sleep(100);
   console.log('opponents:', await js(`[...document.querySelectorAll('.opp-stats')].map(e => e.innerText.replace(/\\n/g, ' ')).join(' | ')`));
   await shot('03-game');

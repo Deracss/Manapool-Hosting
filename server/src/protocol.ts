@@ -33,6 +33,7 @@ export type ClientMsg =
   | { t: 'act'; action: Action }
   | { t: 'ping'; sel: string; kind: string; label: string }
   | { t: 'emote'; id: number }
+  | { t: 'react'; iid: string; code: string } // the owner's reaction to a cast (checked against OWNER_HASH)
   | ({ t: 'loadout' } & Omit<Loadout, 'name'>)
   | { t: 'botDeck'; seat: PlayerId; deck: string | null }
   | { t: 'ready'; ready: boolean }
@@ -43,6 +44,7 @@ export type ServerMsg =
   | { t: 'state'; state: GameState; game: number }
   | { t: 'ping'; from: PlayerId; sel: string; kind: string }
   | { t: 'emote'; from: PlayerId; id: number }
+  | { t: 'react'; from: PlayerId; iid: string }
   | { t: 'error'; msg: string }
   | { t: 'closed'; msg: string }
   | { t: 'snapshot'; code: string; blob: string }; // sealed copy of the whole game (only the server can open it), kept by players in case the server restarts

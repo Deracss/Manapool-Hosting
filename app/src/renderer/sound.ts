@@ -41,6 +41,10 @@ export type SoundKind =
   | 'flare-celestial-citadel'
   | 'coin'
   | 'coinLand'
+  | 'diceShake'
+  | 'diceRoll'
+  | 'diceLand'
+  | 'diceTie'
   | 'reveal'
   | 'priority'
   | 'etbArtifact'
@@ -71,6 +75,11 @@ let master: GainNode | null = null;
 let enabled = true;
 let volume = 0.5;
 const lastPlayed = new Map<SoundKind, number>();
+
+/** The effects volume (0 when sound is off), for audio played outside the synth. */
+export function getSoundVolume(): number {
+  return enabled ? volume : 0;
+}
 
 export function configureSound(on: boolean, vol: number): void {
   enabled = on;
@@ -390,6 +399,32 @@ const SOUNDS: Record<SoundKind, (a: { ac: AudioContext; out: GainNode }) => void
   coinLand: (a) => {
     tone(a, { f: 1760, dur: 0.6, gain: 0.07 });
     tone(a, { f: 2637, dur: 0.4, gain: 0.03 });
+  },
+  // ---------- D20 for who goes first ----------
+  // Picking the die up: a short rattle in the hand.
+  diceShake: (a) => {
+    for (let i = 0; i < 5; i++) noise(a, { t: i * 0.045, dur: 0.03, f: 2600 + (i % 2) * 700, q: 3, gain: 0.07 });
+  },
+  // Tumbling across the table: knocks that slow down.
+  diceRoll: (a) => {
+    let t = 0;
+    for (let i = 0; i < 9; i++) {
+      noise(a, { t, dur: 0.035, f: 1500 + Math.random() * 900, q: 2.5, gain: 0.13 - i * 0.011 });
+      tone(a, { t, f: 180 + Math.random() * 60, dur: 0.05, gain: 0.05 - i * 0.004 });
+      t += 0.06 + i * 0.022;
+    }
+  },
+  // Coming to rest, and the number shows.
+  diceLand: (a) => {
+    noise(a, { dur: 0.05, f: 1200, q: 2, gain: 0.14 });
+    tone(a, { f: 160, dur: 0.12, gain: 0.08 });
+    tone(a, { t: 0.08, f: 1318, dur: 0.35, gain: 0.05 });
+    tone(a, { t: 0.08, f: 1975, dur: 0.3, gain: 0.025 });
+  },
+  // A tie for first: two low notes.
+  diceTie: (a) => {
+    tone(a, { f: 392, dur: 0.18, type: 'triangle', gain: 0.08 });
+    tone(a, { t: 0.2, f: 392, dur: 0.3, type: 'triangle', gain: 0.08 });
   },
   // ---------- deck builder ----------
   // A soft paper tick.

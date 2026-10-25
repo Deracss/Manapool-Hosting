@@ -540,6 +540,8 @@ export interface GameState {
   /** Shown to every player for the last action only (cleared by each apply): revealed cards and coin flips. */
   reveals?: { seq: number; iid: Iid; player: PlayerId; note: string }[];
   flips?: { seq: number; player: PlayerId; heads: boolean; source: string }[];
+  /** The D20 roll for who goes first. `results` holds this round's rolls by player (null: not rolled yet). */
+  roll?: { round: number; contenders: PlayerId[]; results: (number | null)[]; history: { round: number; player: PlayerId; value: number }[]; done: boolean };
 }
 
 /** One mana spent from a specific place. Leave `pay` out of an action to pay automatically. */
@@ -548,6 +550,7 @@ export type PaySource = 'floating' | 'rock' | 'corrupted' | { orb: Iid };
 export type Action =
   | { type: 'keep'; player: PlayerId }
   | { type: 'mulligan'; player: PlayerId }
+  | { type: 'roll'; player: PlayerId }
   | { type: 'charge'; player: PlayerId; card: Iid }
   | { type: 'play'; player: PlayerId; card: Iid; targets?: string[]; pay?: PaySource[] }
   | { type: 'activate'; player: PlayerId; card: Iid; ability?: number; pay?: PaySource[] }
@@ -572,6 +575,8 @@ export interface GameConfig {
   players: PlayerConfig[];
   seed?: number;
   startingPlayer?: PlayerId;
+  /** Everyone rolls a D20 before the opening hands are kept; the highest goes first (ties roll again). */
+  rollForFirst?: boolean;
   validateDecks?: boolean;
 }
 

@@ -19,11 +19,14 @@ export interface GameSetup {
 
 export type RematchMode = 'same' | 'swap' | 'random';
 
-/** The next game after a rematch: same decks, every deck one seat to the left, or new random precons. */
-export function rematchSetup(prev: GameSetup, mode: RematchMode, first: number): GameSetup {
+/** The next game after a rematch: same decks, your deck traded with the one you pick (`take` = that seat), or new random precons. */
+export function rematchSetup(prev: GameSetup, mode: RematchMode, take = 1): GameSetup {
   const seats = [prev.me, ...prev.bots];
   let next: SeatSetup[] = seats;
-  if (mode === 'swap') next = seats.map((s, i) => ({ ...seats[(i + 1) % seats.length], name: s.name }));
+  if (mode === 'swap') {
+    const k = Math.min(Math.max(1, take), seats.length - 1);
+    next = seats.map((s, i) => (i === 0 ? { ...seats[k], name: s.name } : i === k ? { ...seats[0], name: s.name } : s));
+  }
   if (mode === 'random') {
     const pool = allDecks().filter((d) => d.sample && isLegal(d));
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -32,7 +35,7 @@ export function rematchSetup(prev: GameSetup, mode: RematchMode, first: number):
       return { name: s.name, deck: d.cards, deckName: d.name, field: d.field ?? null };
     });
   }
-  return { me: next[0], bots: next.slice(1), seed: Math.floor(Math.random() * 1e9), first };
+  return { me: next[0], bots: next.slice(1), seed: Math.floor(Math.random() * 1e9) };
 }
 
 const BOT_NAMES = ['Ben', 'Cat', 'Dev'];

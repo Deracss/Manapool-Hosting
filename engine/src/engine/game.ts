@@ -11,7 +11,7 @@ import type { PayMode } from './mana.ts';
 import { addToStack, continueAfterChoice, continueAfterChoosePlayer, continueAfterConfirm, continueAfterGuide, continueAfterMode, openRound, passPriority } from './stack.ts';
 import { activatedOf, handAbilitiesOf, artifactsPayForArtifacts, chargesAllowed, costReductionFor, hasKeyword, isArtifact, isCreature, spellsAsIncantations } from './stats.ts';
 import { beginTurn } from './turns.ts';
-import { alive, defOf, fail, log, nameOf, newInstance, nextAlive, player, pname, shuffle } from './util.ts';
+import { alive, defOf, fail, log, nameOf, newInstance, nextAlive, player, pname, random, shuffle } from './util.ts';
 import { chargeCard, checkState, destroy, drawCards, tapPerm, untapPerm } from './zones.ts';
 
 export const STARTING_LIFE = 7;
@@ -92,6 +92,10 @@ export function createGame(config: GameConfig): GameState {
     shuffle(s, p.deck);
   });
   for (const p of s.players) drawCards(s, p.id, STARTING_HAND);
+  if (config.rollForFirst) {
+    s.roll = { round: 1, contenders: s.players.map((p) => p.id), results: s.players.map(() => null), history: [], done: false };
+    log(s, 'Everyone rolls a D20; the highest goes first.');
+  }
   log(s, 'Opening hands drawn. Each player may keep or mulligan once.');
   return s;
 }
@@ -99,6 +103,7 @@ export function createGame(config: GameConfig): GameState {
 /** Who the game is waiting on right now (null when the game is over). */
 export function whoMustAct(s: GameState): PlayerId | null {
   if (s.phase === 'over') return null;
+  if (s.phase === 'mulligan' && s.roll && !s.roll.done) return rollPending(s)[0] ?? null;
   if (s.phase === 'mulligan') return s.players.find((p) => p.mulligan === 'pending')?.id ?? null;
   if (s.decision) return s.decision.player;
   if (s.window) return s.window.holder;
@@ -123,6 +128,10 @@ function dispatch(s: GameState, a: Action): void {
     p.conceded = true;
     p.life = 0;
     return;
+  }
+  if (s.phase === 'mulligan' && s.roll && !s.roll.done) {
+    if (a.type !== 'roll') fail('Roll the D20 first.');
+    return rollStep(s, a.player);
   }
   if (s.phase === 'mulligan') {
     if (a.type !== 'keep' && a.type !== 'mulligan') fail('Everyone must keep or mulligan first.');
@@ -183,6 +192,37 @@ function settle(s: GameState): void {
     return;
   }
   if (s.pendingTriggers.length && !s.window && !s.decision && !s.resolving) openRound(s, 'returnMain');
+}
+
+/** Players who still have to roll this round. */
+export function rollPending(s: GameState): PlayerId[] {
+  const r = s.roll;
+  if (!r || r.done) return [];
+  return r.contenders.filter((pid) => r.results[pid] === null && !player(s, pid).eliminated);
+}
+
+function rollStep(s: GameState, pid: PlayerId): void {
+  const r = s.roll!;
+  if (!r.contenders.includes(pid)) fail(`${pname(s, pid)} is not rolling this round.`);
+  if (r.results[pid] !== null) fail(`${pname(s, pid)} already rolled.`);
+  const value = 1 + Math.floor(random(s) * 20);
+  r.results[pid] = value;
+  r.history.push({ round: r.round, player: pid, value });
+  log(s, `${pname(s, pid)} rolls ${value}${r.round > 1 ? ' (reroll)' : ''}.`);
+  if (rollPending(s).length) return;
+  const live = r.contenders.filter((q) => !player(s, q).eliminated);
+  const best = Math.max(...live.map((q) => r.results[q] ?? 0));
+  const top = live.filter((q) => r.results[q] === best);
+  if (top.length === 1) {
+    r.done = true;
+    s.active = top[0];
+    log(s, `${pname(s, top[0])} goes first.`);
+    return;
+  }
+  log(s, `Tie at ${best}: ${top.map((q) => pname(s, q)).join(' and ')} roll again.`);
+  r.round++;
+  r.contenders = top;
+  r.results = s.players.map(() => null);
 }
 
 function mulliganStep(s: GameState, pid: PlayerId, mulligan: boolean): void {

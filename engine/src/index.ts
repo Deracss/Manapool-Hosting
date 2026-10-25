@@ -1,5 +1,5 @@
 export * from './types.ts';
-export { createGame, apply, whoMustAct, validateDeck, STARTING_LIFE, STARTING_HAND, DECK_SIZE } from './engine/game.ts';
+export { createGame, apply, whoMustAct, rollPending, validateDeck, STARTING_LIFE, STARTING_HAND, DECK_SIZE } from './engine/game.ts';
 export { attackOf, defenseOf, keywordsOf, isCreature, isArtifact, attackBoostTotal, defenseBoostTotal, shieldedFrom, spellsAsIncantations, boostValue, hasStatic, chargesAllowed, activatedOf, handAbilitiesOf, hasKeyword } from './engine/stats.ts';
 export { availableMana } from './engine/mana.ts';
 export { getDef, allDefs, deckCardIds, cardIdByName, keywordGlossary, HIDDEN_CARD } from './cards/registry.ts';

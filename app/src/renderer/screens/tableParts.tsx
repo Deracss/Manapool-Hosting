@@ -186,6 +186,7 @@ export function StackPanel({
   onHover,
   onPick,
   clock,
+  react,
 }: {
   s: GameState;
   who: PlayerId | null;
@@ -195,6 +196,7 @@ export function StackPanel({
   onHover: (iid: Iid | null) => void;
   onPick: (iid: Iid) => void;
   clock?: { who: string; time: string; mine: boolean } | null;
+  react?: { can: (it: GameState['stack'][number]) => boolean; go: (iid: Iid) => void };
 }) {
   const items = [...s.stack].reverse();
   const nameOf = (id: string) => (s.cards[id] ? getDef(s.cards[id].cardId).name : id);
@@ -250,7 +252,28 @@ export function StackPanel({
                   {targets.length ? ` → ${targets.map(nameOf).join(', ')}` : ''}
                 </small>
               </span>
-              {i === 0 && <span className="sp-top">TOP</span>}
+              {react && it.kind === 'card' && react.can(it) ? (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="rx-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    react.go(it.iid);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      react.go(it.iid);
+                    }
+                  }}
+                >
+                  🎙 React!
+                </span>
+              ) : (
+                i === 0 && <span className="sp-top">TOP</span>
+              )}
             </button>
           );
         })}
