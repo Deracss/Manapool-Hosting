@@ -36,6 +36,7 @@ export const ART = new Set([
   'mana-tree',
   'truesight-helmet',
   'artifact-1',
+  'automaton-forge',
 ]);
 
 export const artUrl = (id: string) => `assets/art/${id}.jpg`;
