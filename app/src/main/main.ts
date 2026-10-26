@@ -13,11 +13,20 @@ function createWindow(): void {
     icon: path.join(__dirname, 'assets', 'icon.png'),
     autoHideMenuBar: true,
     show: false,
+    fullscreen: true,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   // macOS keeps a small menu so Cmd+Q, Cmd+C and Cmd+V work.
   Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
   win.once('ready-to-show', () => win.show());
+  // F11 switches between full screen and a window.
+  win.webContents.on('before-input-event', (e, input) => {
+    if (input.type !== 'keyDown') return;
+    if (input.key === 'F11') {
+      e.preventDefault();
+      win.setFullScreen(!win.isFullScreen());
+    }
+  });
   // Links open in the default browser, never inside the game window.
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);

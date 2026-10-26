@@ -1034,3 +1034,6 @@ p.small, .muted.small { font-size: 13px; margin: 0; }
 .card.fullart .fa-stats i { align-self: center; width: 1px; height: 21px; background: var(--light); opacity: 0.55; }
 .card.fullart .fa-stats .up { color: #7fe39a; }
 .card.fullart .fa-stats .down { color: #ff8f80; }
+
+/* Alt inspect: card and description 25% bigger (also in the deck builder). */
+.inspect-info { zoom: 1.25; max-height: calc((100vh - 48px) / 1.25); }

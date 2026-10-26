@@ -50,7 +50,7 @@ export function InspectOverlay() {
   return (
     <div className={`inspect${terms.length > 4 || card.text.length > 220 ? ' compact' : ''}`} role="dialog" aria-label={`${card.name} details`} aria-live="polite">
       <div className="inspect-card">
-        <Card show={card} scale={1.12} />
+        <Card show={card} scale={Math.min(1.4, (window.innerHeight - 48) / 476)} />
       </div>
       <section className="inspect-info">
         <header>
