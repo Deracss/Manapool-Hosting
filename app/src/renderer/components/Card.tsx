@@ -193,7 +193,7 @@ function RulesText({ text }: { text: string }) {
           last = m.index! + m[0].length;
         }
         if (last < line.length) parts.push({ t: line.slice(last), k: false });
-        return <p key={i}>{parts.map((p, j) => (p.k ? <b key={j}>{p.t}</b> : <span key={j}>{p.t}</span>))}</p>;
+        return <p key={i}>{parts.map((p, j) => (p.k ? <b key={j} style={{ whiteSpace: 'nowrap' }}>{p.t}</b> : <span key={j}>{p.t}</span>))}</p>;
       })}
     </>
   );
