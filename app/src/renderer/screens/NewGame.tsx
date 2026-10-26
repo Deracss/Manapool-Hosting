@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { allDecks, FIELDS, isLegal } from '../storage';
+import { allDecks, deckField, FIELDS, isLegal } from '../storage';
 import type { Deck } from '../storage';
 import { BackButton } from './common';
 
@@ -48,7 +48,7 @@ export function NewGame({ initialDeckId, onBack, onBuilder, onStart }: { initial
   const decks = useMemo(() => allDecks(), []);
   const legal = decks.filter(isLegal);
   const [deckId, setDeckId] = useState(initialDeckId && decks.some((d) => d.id === initialDeckId && isLegal(d)) ? initialDeckId : legal[0]?.id);
-  const [field, setField] = useState<string>(() => decks.find((d) => d.id === deckId)?.field ?? PLAYABLE_FIELDS[0].id);
+  const [field, setField] = useState<string>(() => deckField(decks.find((d) => d.id === deckId)));
   const [botDecks, setBotDecks] = useState<string[]>([RANDOM, RANDOM, RANDOM]);
   const [botFields, setBotFields] = useState<string[]>([DECK_FIELD, DECK_FIELD, DECK_FIELD]);
   const mine = decks.find((d) => d.id === deckId);
@@ -84,7 +84,7 @@ export function NewGame({ initialDeckId, onBack, onBuilder, onStart }: { initial
             return (
               <button key={d.id} type="button" className="option" aria-pressed={d.id === deckId} disabled={!ok} onClick={() => {
                   setDeckId(d.id);
-                  if (d.sample && d.field) setField(d.field);
+                  setField(deckField(d));
                 }}>
                 <span style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
                   <span className="name">{d.name}</span>

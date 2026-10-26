@@ -95,3 +95,25 @@ export function cardNumber(id: string): number | undefined {
 }
 
 export const FIELDS = allDefs().filter((d) => d.type === 'Field');
+
+/** The Field a deck plays with: its saved Field, or the first playable one (what the deck builder shows). */
+export function deckField(d: Deck | undefined): string {
+  const playable = FIELDS.filter((f) => f.scripted);
+  return d?.field && playable.some((f) => f.id === d.field) ? d.field : playable[0].id;
+}
+
+const LAST_ONLINE_DECK = 'manapool.online.deck';
+export function loadOnlineDeck(): string | null {
+  try {
+    return localStorage.getItem(LAST_ONLINE_DECK);
+  } catch {
+    return null;
+  }
+}
+export function saveOnlineDeck(id: string): void {
+  try {
+    localStorage.setItem(LAST_ONLINE_DECK, id);
+  } catch {
+    /* not saved */
+  }
+}

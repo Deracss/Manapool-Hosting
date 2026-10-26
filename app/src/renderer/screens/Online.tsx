@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GameState, PlayerId } from '../engine';
-import { allDecks, FIELDS, isLegal, SAMPLE_DECKS } from '../storage';
+import { allDecks, deckField, FIELDS, isLegal, loadOnlineDeck, SAMPLE_DECKS, saveOnlineDeck } from '../storage';
 import { Connection, DEFAULT_SERVER, PROTOCOL, loadName, loadServer, saveName, saveServer, wakeServer } from '../net';
 import type { ServerMsg } from '../net';
 import { BackButton } from './common';
@@ -42,9 +42,10 @@ function saveLastGame(g: LastGame | null): void {
 export function Online({ onBack }: { onBack: () => void }) {
   const decks = useMemo(() => allDecks().filter(isLegal), []);
   const [name, setName] = useState(loadName());
-  const [deckId, setDeckId] = useState(decks[0]?.id ?? '');
+  // Starts on the deck you used last time; the Field is that deck's Field.
+  const [deckId, setDeckId] = useState(() => { const last = loadOnlineDeck(); return last && decks.some((d) => d.id === last) ? last : (decks[0]?.id ?? ''); });
   const deck = decks.find((d) => d.id === deckId);
-  const [field, setField] = useState<string>(deck?.field ?? PLAYABLE_FIELDS[0].id);
+  const [field, setField] = useState<string>(() => deckField(deck));
   const [code, setCode] = useState('');
   const [server, setServer] = useState(loadServer());
   const [status, setStatus] = useState<Status>({ k: 'form' });
@@ -210,8 +211,11 @@ export function Online({ onBack }: { onBack: () => void }) {
   const changeLoadout = (newDeck: string | null, newField: string | null) => {
     const d = decks.find((x) => x.id === (newDeck ?? deckId));
     if (!d) return;
-    const f = newField ?? (newDeck ? (d.field ?? field) : field);
-    if (newDeck) setDeckId(newDeck);
+    const f = newField ?? (newDeck ? deckField(d) : field);
+    if (newDeck) {
+      setDeckId(newDeck);
+      saveOnlineDeck(newDeck);
+    }
     setField(f);
     conn.current?.send({ t: 'loadout', deck: d.cards, deckName: d.name, field: f });
   };
@@ -406,8 +410,8 @@ export function Online({ onBack }: { onBack: () => void }) {
               value={deckId}
               onChange={(e) => {
                 setDeckId(e.target.value);
-                const d = decks.find((x) => x.id === e.target.value);
-                if (d?.field) setField(d.field);
+                saveOnlineDeck(e.target.value);
+                setField(deckField(decks.find((x) => x.id === e.target.value)));
               }}
             >
               {decks.map((d) => (
