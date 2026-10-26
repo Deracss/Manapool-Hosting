@@ -180,7 +180,8 @@ export function showInGame(s: GameState, iid: Iid): CardShow {
 const KW = /\b[A-Z]{2,}[A-Z'-]*(?:\s+[A-Z]{2,}[A-Z'-]*)*\b/g;
 
 function RulesText({ text }: { text: string }) {
-  const lines = text ? text.split('\n') : [];
+  // A number stays on the same line as the word after it ("10 SOULS", "3 counters").
+  const lines = text ? text.replace(/(\d) (?=\S)/g, '$1\u00a0').split('\n') : [];
   return (
     <>
       {lines.map((line, i) => {
