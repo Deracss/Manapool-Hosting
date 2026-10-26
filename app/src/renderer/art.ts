@@ -26,6 +26,7 @@ export const ART = new Set([
   'demon-leecher',
   'demon-charger',
   'mourning-marauder',
+  'cryptic-reclaimer',
 ]);
 
 export const artUrl = (id: string) => `assets/art/${id}.jpg`;
