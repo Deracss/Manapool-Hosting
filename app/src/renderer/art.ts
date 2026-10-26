@@ -34,6 +34,7 @@ export const ART = new Set([
   'grim-gauntlet',
   'shadowveil-shroud',
   'mana-tree',
+  'truesight-helmet',
 ]);
 
 export const artUrl = (id: string) => `assets/art/${id}.jpg`;
