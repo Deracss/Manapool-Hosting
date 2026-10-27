@@ -37,6 +37,7 @@ export const ART = new Set([
   'truesight-helmet',
   'artifact-1',
   'automaton-forge',
+  'the-gods-blessing',
 ]);
 
 export const artUrl = (id: string) => `assets/art/${id}.jpg`;
